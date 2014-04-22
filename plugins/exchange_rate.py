@@ -9,10 +9,10 @@ import threading
 import time
 import re
 from decimal import Decimal
-from electrum_ltc.plugins import BasePlugin
-from electrum_ltc.i18n import _
-from electrum_ltc_gui.qt.util import *
-from electrum_ltc_gui.qt.amountedit import AmountEdit
+from electrum_myr.plugins import BasePlugin
+from electrum_myr.i18n import _
+from electrum_myr_gui.qt.util import *
+from electrum_myr_gui.qt.amountedit import AmountEdit
 
 
 EXCHANGES = ["Bit2C",
@@ -278,7 +278,7 @@ class Plugin(BasePlugin):
         self.get_fiat_price_text(r)
         quote = r.get(0)
         if quote:
-            price_text = "1 LTC~%s"%quote
+            price_text = "1 MYR~%s"%quote
             fiat_currency = quote[-3:]
             btc_price = self.btc_rate
             fiat_balance = Decimal(btc_price) * (Decimal(btc_balance)/100000000)
@@ -577,7 +577,7 @@ class Plugin(BasePlugin):
         self.get_fiat_price_text(r)
         quote = r.get(0)
         if quote:
-          text = "1 LTC~%s"%quote
+          text = "1 MYR~%s"%quote
           grid.addWidget(QLabel(_(text)), 4, 0, 3, 0)
         else:
             self.gui.main_window.show_message(_("Exchange rate not available.  Please check your network connection."))
@@ -596,7 +596,7 @@ class Plugin(BasePlugin):
 
         quote = quote[:-4]
         btcamount = Decimal(fiat) / Decimal(quote)
-        if str(self.gui.main_window.base_unit()) == "mLTC":
+        if str(self.gui.main_window.base_unit()) == "mMYR":
             btcamount = btcamount * 1000
         quote = "%.8f"%btcamount
         self.gui.main_window.amount_e.setText( quote )

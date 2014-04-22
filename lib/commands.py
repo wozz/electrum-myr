@@ -243,7 +243,7 @@ class Commands:
         return self.network.get_servers()
 
     def getversion(self):
-        import electrum_ltc as electrum 
+        import electrum_myr as electrum 
         return electrum.ELECTRUM_VERSION
  
     def getmpk(self):

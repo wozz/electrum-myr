@@ -2,8 +2,8 @@ from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 import PyQt4.QtCore as QtCore
 
-from electrum_ltc.i18n import _
-from electrum_ltc import Wallet, Wallet_2of3
+from electrum_myr.i18n import _
+from electrum_myr import Wallet, Wallet_2of3
 
 import seed_dialog
 from network_dialog import NetworkDialog
@@ -12,7 +12,7 @@ from amountedit import AmountEdit
 
 import sys
 import threading
-from electrum_ltc.plugins import run_hook
+from electrum_myr.plugins import run_hook
 
 class InstallWizard(QDialog):
 

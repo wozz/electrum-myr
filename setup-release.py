@@ -18,8 +18,8 @@ from lib.util import print_error
 from lib.version import ELECTRUM_VERSION as version
 
 
-name = "Electrum-LTC"
-mainscript = 'electrum-ltc'
+name = "Electrum-MYR"
+mainscript = 'electrum-myr'
 
 if sys.version_info[:3] < (2, 6, 0):
     print_error("Error: " + name + " requires Python version >= 2.6.0...")

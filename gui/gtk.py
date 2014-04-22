@@ -24,18 +24,18 @@ import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, GObject, cairo
 from decimal import Decimal
-from electrum_ltc.util import print_error
-from electrum_ltc.bitcoin import is_valid
-from electrum_ltc import mnemonic, pyqrnative, WalletStorage, Wallet
+from electrum_myr.util import print_error
+from electrum_myr.bitcoin import is_valid
+from electrum_myr import mnemonic, pyqrnative, WalletStorage, Wallet
 
 Gdk.threads_init()
-APP_NAME = "Electrum-LTC"
+APP_NAME = "Electrum-MYR"
 import platform
 MONOSPACE_FONT = 'Lucida Console' if platform.system() == 'Windows' else 'monospace'
 
-from electrum_ltc.util import format_satoshis
-from electrum_ltc.network import DEFAULT_SERVERS
-from electrum_ltc.bitcoin import MIN_RELAY_TX_FEE
+from electrum_myr.util import format_satoshis
+from electrum_myr.network import DEFAULT_SERVERS
+from electrum_myr.bitcoin import MIN_RELAY_TX_FEE
 
 def numbify(entry, is_int = False):
     text = entry.get_text().strip()
@@ -747,7 +747,7 @@ class ElectrumWindow:
             self.set_frozen(self.payto_entry,True)
             self.set_frozen(self.amount_entry,True)
             self.set_frozen(self.message_entry,True)
-            self.payto_sig_id.set_text( '      The litecoin URI was signed by ' + identity )
+            self.payto_sig_id.set_text( '      The myriadcoin URI was signed by ' + identity )
         else:
             self.payto_sig.set_visible(False)
 
@@ -801,7 +801,7 @@ class ElectrumWindow:
             to_address = r
 
         if not is_valid(to_address):
-            self.show_message( "invalid litecoin address:\n"+to_address)
+            self.show_message( "invalid myriadcoin address:\n"+to_address)
             return
 
         try:

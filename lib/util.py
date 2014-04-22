@@ -43,13 +43,13 @@ def print_json(obj):
 
 def user_dir():
     if "HOME" in os.environ:
-        return os.path.join(os.environ["HOME"], ".electrum-ltc")
+        return os.path.join(os.environ["HOME"], ".electrum-myr")
     elif "APPDATA" in os.environ:
-        return os.path.join(os.environ["APPDATA"], "Electrum-LTC")
+        return os.path.join(os.environ["APPDATA"], "Electrum-MYR")
     elif "LOCALAPPDATA" in os.environ:
-        return os.path.join(os.environ["LOCALAPPDATA"], "Electrum-LTC")
+        return os.path.join(os.environ["LOCALAPPDATA"], "Electrum-MYR")
     elif 'ANDROID_DATA' in os.environ:
-        return "/sdcard/electrum-ltc/"
+        return "/sdcard/electrum-myr/"
     else:
         #raise Exception("No home directory found in environment variables.")
         return
@@ -57,15 +57,15 @@ def user_dir():
 def appdata_dir():
     """Find the path to the application data directory; add an electrum folder and return path."""
     if platform.system() == "Windows":
-        return os.path.join(os.environ["APPDATA"], "Electrum-LTC")
+        return os.path.join(os.environ["APPDATA"], "Electrum-MYR")
     elif platform.system() == "Linux":
-        return os.path.join(sys.prefix, "share", "electrum-ltc")
+        return os.path.join(sys.prefix, "share", "electrum-myr")
     elif (platform.system() == "Darwin" or
           platform.system() == "DragonFly" or
           platform.system() == "OpenBSD" or
           platform.system() == "FreeBSD" or
 	  platform.system() == "NetBSD"):
-        return "/Library/Application Support/Electrum-LTC"
+        return "/Library/Application Support/Electrum-MYR"
     else:
         raise Exception("Unknown system")
 

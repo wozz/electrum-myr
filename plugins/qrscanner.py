@@ -1,16 +1,16 @@
-from electrum_ltc.util import print_error
+from electrum_myr.util import print_error
 from urlparse import urlparse, parse_qs
 from PyQt4.QtGui import QPushButton, QMessageBox, QDialog, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QLineEdit, QComboBox
 from PyQt4.QtCore import Qt
 
-from electrum_ltc.i18n import _
+from electrum_myr.i18n import _
 import re
 import os
-from electrum_ltc import Transaction
-from electrum_ltc.bitcoin import MIN_RELAY_TX_FEE, is_valid
-from electrum_ltc_gui.qt.qrcodewidget import QRCodeWidget
-from electrum_ltc import bmp
-from electrum_ltc_gui.qt import HelpButton, EnterButton
+from electrum_myr import Transaction
+from electrum_myr.bitcoin import MIN_RELAY_TX_FEE, is_valid
+from electrum_myr_gui.qt.qrcodewidget import QRCodeWidget
+from electrum_myr import bmp
+from electrum_myr_gui.qt import HelpButton, EnterButton
 import json
 
 try:
@@ -18,7 +18,7 @@ try:
 except ImportError:
     zbar = None
 
-from electrum_ltc import BasePlugin
+from electrum_myr import BasePlugin
 class Plugin(BasePlugin):
 
     def fullname(self): return 'QR scans'
@@ -94,7 +94,7 @@ class Plugin(BasePlugin):
         to_address = m.group(2) if m else r
 
         if not is_valid(to_address):
-            QMessageBox.warning(self.gui.main_window, _('Error'), _('Invalid Litecoin Address') + ':\n' + to_address, _('OK'))
+            QMessageBox.warning(self.gui.main_window, _('Error'), _('Invalid Myriadcoin Address') + ':\n' + to_address, _('OK'))
             return
 
         try:
@@ -367,20 +367,20 @@ def parse_uri(uri):
 
 if __name__ == '__main__':
     # Run some tests
-    
+   #TODO update to myriadcoin addresses 
     assert(parse_uri('LcUP7ZU3Xpk1BUR3qut3dTjC3aK5JoZMYx') ==
            {'address': 'LcUP7ZU3Xpk1BUR3qut3dTjC3aK5JoZMYx'})
 
-    assert(parse_uri('litecoin://LcUP7ZU3Xpk1BUR3qut3dTjC3aK5JoZMYx') ==
+    assert(parse_uri('myriadcoin://LcUP7ZU3Xpk1BUR3qut3dTjC3aK5JoZMYx') ==
            {'address': 'LcUP7ZU3Xpk1BUR3qut3dTjC3aK5JoZMYx'})
     
-    assert(parse_uri('litecoin:LcUP7ZU3Xpk1BUR3qut3dTjC3aK5JoZMYx') ==
+    assert(parse_uri('myriadcoin:LcUP7ZU3Xpk1BUR3qut3dTjC3aK5JoZMYx') ==
            {'address': 'LcUP7ZU3Xpk1BUR3qut3dTjC3aK5JoZMYx'})
     
-    assert(parse_uri('litecoin:LcUP7ZU3Xpk1BUR3qut3dTjC3aK5JoZMYx?amount=10') ==
+    assert(parse_uri('myriadcoin:LcUP7ZU3Xpk1BUR3qut3dTjC3aK5JoZMYx?amount=10') ==
            {'amount': '10', 'address': 'LcUP7ZU3Xpk1BUR3qut3dTjC3aK5JoZMYx'})
     
-    assert(parse_uri('litecoin:LcUP7ZU3Xpk1BUR3qut3dTjC3aK5JoZMYx?amount=10&label=devfund&message=Donation%20to%20the%20dev%20fund') ==
+    assert(parse_uri('myriadcoin:LcUP7ZU3Xpk1BUR3qut3dTjC3aK5JoZMYx?amount=10&label=devfund&message=Donation%20to%20the%20dev%20fund') ==
            {'amount': '10', 'label': 'devfund', 'message': 'Donation to the dev fund', 'address': 'LcUP7ZU3Xpk1BUR3qut3dTjC3aK5JoZMYx'})
     
     
