@@ -20,12 +20,15 @@
 import threading, time, Queue, os, sys, shutil
 from util import user_dir, appdata_dir, print_error, print_msg
 from bitcoin import *
+import hashlib
 
 try:
-    from ltc_scrypt import getPoWHash
+    from ltc_scrypt import getPoWScryptHash
 except ImportError:
     print_msg("Warning: ltc_scrypt not available, using fallback")
-    from scrypt import scrypt_1024_1_1_80 as getPoWHash
+    from scrypt import scrypt_1024_1_1_80 as getPoWScryptHash
+
+from pyskein import skein.skein256 as skein
 
 
 class Blockchain(threading.Thread):
@@ -189,8 +192,17 @@ class Blockchain(threading.Thread):
     def hash_header(self, header):
         return rev_hex(Hash(self.header_to_string(header).decode('hex')).encode('hex'))
 
-    def pow_hash_header(self, header):
-        return rev_hex(getPoWHash(self.header_to_string(header).decode('hex')).encode('hex'))
+    def pow_hash_scrypt_header(self, header):
+        return rev_hex(getPoWScryptHash(self.header_to_string(header).decode('hex')).encode('hex'))
+
+    def pow_hash_sha_header(self,header):
+        return hash_header(header)
+
+    def getPoWSkeinHash(self, header):
+        return sha256(skein(header))
+
+    def pow_hash_skein_header(self,header):
+        return rev_hex(getPoWSkeinHash(self.header_to_string(header).decode('hex')).encode('hex'))
 
     def path(self):
         return os.path.join( self.config.path, 'blockchain_headers')
