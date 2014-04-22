@@ -4,7 +4,7 @@ from bitcoin import *
 import interface
 from blockchain import Blockchain
 
-DEFAULT_PORTS = {'t':'50001', 's':'50002', 'h':'8081', 'g':'8082'}
+DEFAULT_PORTS = {'t':'50008', 's':'50009', 'h':'8088', 'g':'8089'}
 
 
 #TODO: update servers
