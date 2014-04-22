@@ -10,7 +10,7 @@ except Exception:
 
 
 # 1. start the interface and wait for connection
-interface = electrum.Interface('myr.electr.us:50002:s')
+interface = electrum.Interface('myr.electr.us:50009:s')
 interface.start(wait = True)
 if not interface.is_connected:
     print "not connected"
