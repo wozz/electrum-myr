@@ -84,7 +84,7 @@ class Exchanger(threading.Thread):
         quote_currencies = {"BTC": 0.0}
         for cur in quote_currencies:
             try:
-                quote_currencies[cur] = self.get_json('api.mintpal.com', "/v1/market/stats/MYR/BTC")["last_price"]
+                quote_currencies[cur] = Decimal(self.get_json('api.mintpal.com', "/v1/market/stats/MYR/BTC")[0]['last_price'])
             except Exception:
                 pass
         with self.lock:
