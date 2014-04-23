@@ -8,6 +8,17 @@ Homepage: https://electrum.org/
 Electrum Myriadcoin Author: Michael Wozniak
 
 
+
+MYRIADCOIN DEPENDENCIES:
+
+Sha256 - built in
+Scrypt - Same as litecoin
+Groestl - https://bitbucket.org/cryptopools/groestl_hash_python
+Qubit - https://github.com/obigal/qubit-hash-python
+Skein - https://github.com/CryptoRepairCrew/python_skein_hash
+
+
+
 1. GETTING STARTED
 ------------------
 
