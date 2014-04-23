@@ -23,12 +23,25 @@ from bitcoin import *
 import hashlib
 
 try:
-    from ltc_scrypt import getPoWScryptHash
+    from ltc_scrypt import getPoWHash as getPoWScryptHash
 except ImportError:
     print_msg("Warning: ltc_scrypt not available, using fallback")
     from scrypt import scrypt_1024_1_1_80 as getPoWScryptHash
 
-#from pyskein import skein.skein256 as skein
+try:
+    from groestl_hash import getPoWHash as getPoWGroestlHash
+except ImportError:
+    raise
+
+try:
+    from qubit_hash import getPoWHash as getPoWQubitHash
+except ImportError:
+    raise
+
+try:
+    from skeinhash import getPoWHash as getPoWSkeinHash
+except ImportError:
+    raise
 
 
 class Blockchain(threading.Thread):
