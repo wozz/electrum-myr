@@ -28,7 +28,7 @@ except ImportError:
     print_msg("Warning: ltc_scrypt not available, using fallback")
     from scrypt import scrypt_1024_1_1_80 as getPoWScryptHash
 
-from pyskein import skein.skein256 as skein
+#from pyskein import skein.skein256 as skein
 
 
 class Blockchain(threading.Thread):
@@ -198,11 +198,11 @@ class Blockchain(threading.Thread):
     def pow_hash_sha_header(self,header):
         return hash_header(header)
 
-    def getPoWSkeinHash(self, header):
-        return sha256(skein(header))
+#    def getPoWSkeinHash(self, header):
+#        return sha256(skein(header))
 
-    def pow_hash_skein_header(self,header):
-        return rev_hex(getPoWSkeinHash(self.header_to_string(header).decode('hex')).encode('hex'))
+#    def pow_hash_skein_header(self,header):
+#        return rev_hex(getPoWSkeinHash(self.header_to_string(header).decode('hex')).encode('hex'))
 
     def path(self):
         return os.path.join( self.config.path, 'blockchain_headers')

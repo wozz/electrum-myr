@@ -54,7 +54,7 @@ data_files += [
 
 
 setup(
-    name="Electrum-LTC",
+    name="Electrum-MYR",
     version=version.ELECTRUM_VERSION,
     install_requires=['slowaes', 'ecdsa>=0.9', 'ltc_scrypt'],
     package_dir={
