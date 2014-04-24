@@ -142,7 +142,7 @@ class ElectrumWindow(QMainWindow):
 
         self.need_update = threading.Event()
 
-        self.decimal_point = config.get('decimal_point', 8)
+        self.decimal_point = config.get('decimal_point', 5)
         self.num_zeros     = int(config.get('num_zeros',0))
 
         set_language(config.get('language'))
@@ -269,7 +269,7 @@ class ElectrumWindow(QMainWindow):
         # Once GUI has been initialized check if we want to announce something since the callback has been called before the GUI was initialized
         self.notify_transactions()
         self.update_account_selector()
-        self.new_account.setEnabled(self.wallet.seed_version>4)
+        self.new_account.setEnabled(self.wallet.can_create_accounts())
         self.update_lock_icon()
         self.update_buttons_on_seed()
         self.update_console()
