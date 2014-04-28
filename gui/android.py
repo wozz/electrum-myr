@@ -453,7 +453,7 @@ def pay_to(recipient, amount, fee, label):
     else:
         password = None
 
-    droid.dialogCreateSpinnerProgress("Electrum", "signing transaction...")
+    droid.dialogCreateSpinnerProgress("Electrum-MYR", "signing transaction...")
     droid.dialogShow()
 
     try:
@@ -1009,7 +1009,7 @@ class ElectrumGui:
     def restore_wallet(self):
 
         msg = "recovering wallet..."
-        droid.dialogCreateSpinnerProgress("Electrum", msg)
+        droid.dialogCreateSpinnerProgress("Electrum-MYR", msg)
         droid.dialogShow()
 
         wallet.restore(lambda x: None)

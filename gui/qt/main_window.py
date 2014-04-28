@@ -99,47 +99,19 @@ class StatusBarButton(QPushButton):
 default_column_widths = { "history":[40,140,350,140], "contacts":[350,330], "receive": [370,200,130] }
 
 class ElectrumWindow(QMainWindow):
-    def build_menu(self):
-        m = QMenu()
-        m.addAction(_("Show/Hide"), self.show_or_hide)
-        m.addSeparator()
-        m.addAction(_("Exit Electrum"), self.close)
-        self.tray.setContextMenu(m)
 
-    def show_or_hide(self):
-        self.tray_activated(QSystemTrayIcon.DoubleClick)
 
-    def tray_activated(self, reason):
-        if reason == QSystemTrayIcon.DoubleClick:
-            if self.isMinimized() or self.isHidden():
-                self.show()
-                self.raise_()
-            else:
-                self.hide()
 
-    def __init__(self, config, network):
+    def __init__(self, config, network, gui_object):
         QMainWindow.__init__(self)
 
         self.config = config
         self.network = network
-
-        self._close_electrum = False
+        self.tray = gui_object.tray
+        self.go_lite = gui_object.go_lite
         self.lite = None
 
-        if sys.platform == 'darwin':
-          self.icon = QIcon(":icons/electrum_dark_icon.png")
-          #self.icon = QIcon(":icons/lock.png")
-        else:
-          self.icon = QIcon(':icons/electrum_light_icon.png')
-
-        self.tray = QSystemTrayIcon(self.icon, self)
-        self.tray.setToolTip('Electrum')
-        self.tray.activated.connect(self.tray_activated)
-
-        self.build_menu()
-        self.tray.show()
         self.create_status_bar()
-
         self.need_update = threading.Event()
 
         self.decimal_point = config.get('decimal_point', 8)
@@ -196,52 +168,6 @@ class ElectrumWindow(QMainWindow):
             self.console.showMessage(self.network.banner)
 
         self.wallet = None
-        self.init_lite()
-
-
-    def go_full(self):
-        self.config.set_key('lite_mode', False, True)
-        self.mini.hide()
-        self.show()
-        self.raise_()
-
-    def go_lite(self):
-        self.config.set_key('lite_mode', True, True)
-        self.hide()
-        self.mini.show()
-        self.mini.raise_()
-
-
-    def init_lite(self):
-        import lite_window
-        if not self.check_qt_version():
-            if self.config.get('lite_mode') is True:
-                msg = "Electrum was unable to load the 'Lite GUI' because it needs Qt version >= 4.7.\nChanging your config to use the 'Classic' GUI"
-                QMessageBox.warning(None, "Could not start Lite GUI.", msg)
-                self.config.set_key('lite_mode', False, True)
-                sys.exit(0)
-            self.mini = None
-            self.show()
-            self.raise_()
-            return
-
-        actuator = lite_window.MiniActuator(self)
-
-        actuator.load_theme()
-
-        self.mini = lite_window.MiniWindow(actuator, self.go_full, self.config)
-
-        driver = lite_window.MiniDriver(self, self.mini)
-
-        if self.config.get('lite_mode') is True:
-            self.go_lite()
-        else:
-            self.go_full()
-
-
-    def check_qt_version(self):
-        qtVersion = qVersion()
-        return int(qtVersion[0]) >= 4 and int(qtVersion[2]) >= 7
 
 
     def update_account_selector(self):
@@ -353,7 +279,7 @@ class ElectrumWindow(QMainWindow):
 
         wallet_menu.addAction(_("&Password"), self.change_password_dialog)
         wallet_menu.addAction(_("&Seed"), self.show_seed_dialog)
-        wallet_menu.addAction(_("&Master Public Key"), self.show_master_public_key)
+        wallet_menu.addAction(_("&Master Public Keys"), self.show_master_public_keys)
 
         wallet_menu.addSeparator()
         labels_menu = wallet_menu.addMenu(_("&Labels"))
@@ -388,20 +314,20 @@ class ElectrumWindow(QMainWindow):
 
         help_menu = menubar.addMenu(_("&Help"))
         help_menu.addAction(_("&About"), self.show_about)
-        help_menu.addAction(_("&Official website"), lambda: webbrowser.open("http://electrum.org"))
+        help_menu.addAction(_("&Official website"), lambda: webbrowser.open("http://myr.electr.us"))
         help_menu.addSeparator()
-        help_menu.addAction(_("&Documentation"), lambda: webbrowser.open("http://electrum.org/documentation.html")).setShortcut(QKeySequence.HelpContents)
+        help_menu.addAction(_("&Documentation"), lambda: webbrowser.open("http://myr.electr.us/documentation.html")).setShortcut(QKeySequence.HelpContents)
         help_menu.addAction(_("&Report Bug"), self.show_report_bug)
 
         self.setMenuBar(menubar)
 
     def show_about(self):
-        QMessageBox.about(self, "Electrum",
+        QMessageBox.about(self, "Electrum-MYR",
             _("Version")+" %s" % (self.wallet.electrum_version) + "\n\n" + _("Electrum's focus is speed, with low resource usage and simplifying Myriadcoin. You do not need to perform regular backups, because your wallet can be recovered from a secret phrase that you can memorize or write on paper. Startup times are instant because it operates in conjunction with high-performance servers that handle the most complicated parts of the Myriadcoin system."))
 
     def show_report_bug(self):
-        QMessageBox.information(self, "Electrum - " + _("Reporting Bugs"),
-            _("Please report any bugs as issues on github:")+" <a href=\"https://github.com/spesmilo/electrum/issues\">https://github.com/spesmilo/electrum/issues</a>")
+        QMessageBox.information(self, "Electrum-MYR - " + _("Reporting Bugs"),
+            _("Please report any bugs as issues on github:")+" <a href=\"https://github.com/cryptorepaircrew/electrum-myr/issues\">https://github.com/cryptorepaircrew/electrum-myr/issues</a>")
 
 
     def notify_transactions(self):
@@ -432,7 +358,7 @@ class ElectrumWindow(QMainWindow):
                           self.notify(_("New transaction received. %(amount)s %(unit)s") % { 'amount' : self.format_amount(v), 'unit' : self.base_unit()})
 
     def notify(self, message):
-        self.tray.showMessage("Electrum", message, QSystemTrayIcon.Information, 20000)
+        self.tray.showMessage("Electrum-MYR", message, QSystemTrayIcon.Information, 20000)
 
 
 
@@ -538,6 +464,9 @@ class ElectrumWindow(QMainWindow):
     def create_history_menu(self, position):
         self.history_list.selectedIndexes()
         item = self.history_list.currentItem()
+        be = self.config.get('block_explorer', 'myriad.theblockexplorer.com')
+        if be == 'myriad.theblockexplorer.com':
+            block_explorer = 'http://myriad.theblockexplorer.com/tx/'
         if not item: return
         tx_hash = str(item.data(0, Qt.UserRole).toString())
         if not tx_hash: return
@@ -545,7 +474,7 @@ class ElectrumWindow(QMainWindow):
         menu.addAction(_("Copy ID to Clipboard"), lambda: self.app.clipboard().setText(tx_hash))
         menu.addAction(_("Details"), lambda: self.show_transaction(self.wallet.transactions.get(tx_hash)))
         menu.addAction(_("Edit description"), lambda: self.tx_label_clicked(item,2))
-        menu.addAction(_("View on explorer online"), lambda: webbrowser.open("http://myriadcoinexplorer/tx/" + tx_hash))
+        menu.addAction(_("View on block explorer"), lambda: webbrowser.open(block_explorer + tx_hash))
         menu.exec_(self.contacts_list.viewport().mapToGlobal(position))
 
 
@@ -1265,22 +1194,31 @@ class ElectrumWindow(QMainWindow):
         else:
             account_items = []
 
-        for k, account in account_items:
-            name = self.wallet.get_account_name(k)
-            c,u = self.wallet.get_account_balance(k)
-            account_item = QTreeWidgetItem( [ name, '', self.format_amount(c+u), ''] )
-            l.addTopLevelItem(account_item)
-            account_item.setExpanded(self.accounts_expanded.get(k, True))
-            account_item.setData(0, 32, k)
+        pending_accounts = self.wallet.get_pending_accounts()
 
-            if not self.wallet.is_seeded(k):
-                icon = QIcon(":icons/key.png")
-                account_item.setIcon(0, icon)
+        for k, account in account_items:
+
+            if len(account_items) + len(pending_accounts) > 1:
+                name = self.wallet.get_account_name(k)
+                c,u = self.wallet.get_account_balance(k)
+                account_item = QTreeWidgetItem( [ name, '', self.format_amount(c+u), ''] )
+                l.addTopLevelItem(account_item)
+                account_item.setExpanded(self.accounts_expanded.get(k, True))
+                account_item.setData(0, 32, k)
+                if not self.wallet.is_seeded(k):
+                    icon = QIcon(":icons/key.png")
+                    account_item.setIcon(0, icon)
+            else:
+                account_item = None
 
             for is_change in ([0,1]):
                 name = _("Receiving") if not is_change else _("Change")
                 seq_item = QTreeWidgetItem( [ name, '', '', '', ''] )
-                account_item.addChild(seq_item)
+                if account_item:
+                    account_item.addChild(seq_item)
+                else:
+                    l.addTopLevelItem(seq_item)
+                    
                 used_item = QTreeWidgetItem( [ _("Used"), '', '', '', ''] )
                 used_flag = False
                 if not is_change: seq_item.setExpanded(True)
@@ -1313,7 +1251,7 @@ class ElectrumWindow(QMainWindow):
                         seq_item.addChild(item)
 
 
-        for k, addr in self.wallet.get_pending_accounts():
+        for k, addr in pending_accounts:
             name = self.wallet.labels.get(k,'')
             account_item = QTreeWidgetItem( [ name + "  [ "+_('pending account')+" ]", '', '', ''] )
             self.update_receive_item(item)
@@ -1518,76 +1456,30 @@ class ElectrumWindow(QMainWindow):
         name = str(e.text())
         if not name: return
 
-        self.wallet.create_pending_account('1of1', name, password)
+        self.wallet.create_pending_account(name, password)
         self.update_receive_tab()
         self.tabs.setCurrentIndex(2)
 
 
 
-    def show_master_public_key_old(self):
-        dialog = QDialog(self)
-        dialog.setModal(1)
-        dialog.setWindowTitle(_("Master Public Key"))
 
-        main_text = QTextEdit()
-        main_text.setText(self.wallet.get_master_public_key())
-        main_text.setReadOnly(True)
-        main_text.setMaximumHeight(170)
-        qrw = QRCodeWidget(self.wallet.get_master_public_key())
-
-        ok_button = QPushButton(_("OK"))
-        ok_button.setDefault(True)
-        ok_button.clicked.connect(dialog.accept)
-
-        main_layout = QGridLayout()
-        main_layout.addWidget(QLabel(_('Your Master Public Key is:')), 0, 0, 1, 2)
-
-        main_layout.addWidget(main_text, 1, 0)
-        main_layout.addWidget(qrw, 1, 1 )
-
-        vbox = QVBoxLayout()
-        vbox.addLayout(main_layout)
-        vbox.addLayout(close_button(dialog))
-        dialog.setLayout(vbox)
-        dialog.exec_()
-
-
-    def show_master_public_key(self):
-
-        if self.wallet.seed_version == 4:
-            self.show_master_public_key_old()
-            return
+    def show_master_public_keys(self):
 
         dialog = QDialog(self)
         dialog.setModal(1)
         dialog.setWindowTitle(_("Master Public Keys"))
 
-        mpk_text = QTextEdit()
-        mpk_text.setReadOnly(True)
-        mpk_text.setMaximumHeight(170)
-        mpk_qrw = QRCodeWidget()
-
         main_layout = QGridLayout()
-
-        main_layout.addWidget(QLabel(_('Key')), 1, 0)
-        main_layout.addWidget(mpk_text, 1, 1)
-        main_layout.addWidget(mpk_qrw, 1, 2)
-
-        def update(key):
-            xpub = self.wallet.master_public_keys[str(key)]
-            mpk_text.setText(xpub)
-            mpk_qrw.set_addr(xpub)
-            mpk_qrw.update_qr()
-
-        key_selector = QComboBox()
-        keys = sorted(self.wallet.master_public_keys.keys())
-        key_selector.addItems(keys)
-
-        main_layout.addWidget(QLabel(_('Derivation:')), 0, 0)
-        main_layout.addWidget(key_selector, 0, 1)
-        dialog.connect(key_selector,SIGNAL("activated(QString)"),update)
-
-        update(keys[0])
+        mpk_dict = self.wallet.get_master_public_keys()
+        i = 0
+        for key, value in mpk_dict.items():
+            main_layout.addWidget(QLabel(key), i, 0)
+            mpk_text = QTextEdit()
+            mpk_text.setReadOnly(True)
+            mpk_text.setMaximumHeight(170)
+            mpk_text.setText(value)
+            main_layout.addWidget(mpk_text, i + 1, 0)
+            i += 2
 
         vbox = QVBoxLayout()
         vbox.addLayout(main_layout)
@@ -2022,7 +1914,7 @@ class ElectrumWindow(QMainWindow):
 
         try:
             select_export = _('Select file to export your private keys to')
-            fileName = self.getSaveFileName(select_export, 'electrum-private-keys.csv', "*.csv")
+            fileName = self.getSaveFileName(select_export, 'electrum-myr-private-keys.csv', "*.csv")
             if fileName:
                 with open(fileName, "w+") as csvfile:
                     transaction = csv.writer(csvfile)
@@ -2062,7 +1954,7 @@ class ElectrumWindow(QMainWindow):
     def do_export_labels(self):
         labels = self.wallet.labels
         try:
-            fileName = self.getSaveFileName(_("Select file to save your labels"), 'electrum_labels.dat', "*.dat")
+            fileName = self.getSaveFileName(_("Select file to save your labels"), 'electrum-myr_labels.dat', "*.dat")
             if fileName:
                 with open(fileName, 'w+') as f:
                     json.dump(labels, f)
@@ -2216,7 +2108,16 @@ class ElectrumWindow(QMainWindow):
         grid.addWidget(HelpButton(_('Using change addresses makes it more difficult for other people to track your transactions.')+' '), 4, 2)
         if not self.config.is_modifiable('use_change'): usechange_cb.setEnabled(False)
 
-        grid.setRowStretch(5,1)
+        block_explorers = ['myriad.theblockexplorer.com']
+        block_ex_label = QLabel(_('Online Block Explorer') + ':')
+        grid.addWidget(block_ex_label, 5, 0)
+        block_ex_combo = QComboBox()
+        block_ex_combo.addItems(block_explorers)
+        block_ex_combo.setCurrentIndex(block_explorers.index(self.config.get('block_explorer', 'myriad.theblockexplorer.com')))
+        grid.addWidget(block_ex_combo, 5, 1)
+        grid.addWidget(HelpButton(_('Choose which online block explorer to use for functions that open a web browser')+' '), 5, 2)
+
+        grid.setRowStretch(6,1)
 
         vbox.addLayout(grid)
         vbox.addLayout(ok_cancel_buttons(d))
@@ -2266,6 +2167,9 @@ class ElectrumWindow(QMainWindow):
         if lang_request != self.config.get('language'):
             self.config.set_key("language", lang_request, True)
             need_restart = True
+
+        be_result = block_explorers[block_ex_combo.currentIndex()]
+        self.config.set_key('block_explorer', be_result, True)
 
         run_hook('close_settings_dialog')
 

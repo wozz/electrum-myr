@@ -113,9 +113,9 @@ setup(
         'electrum_myr_plugins.virtualkeyboard',
     ],
     description="Lightweight Myriadcoin Wallet",
-    author="ecdsa",
-    author_email="ecdsa@github",
+    author="myr",
+    author_email="myr@myr.myr",
     license="GNU GPLv3",
-    url="http://electrum.org",
+    url="http://myr.electr.us",
     long_description="""Lightweight Myriadcoin Wallet"""
 )
