@@ -73,8 +73,8 @@ def make_password_dialog(self, wallet, msg):
 
 def run_password_dialog(self, wallet, parent):
         
-    if wallet and not wallet.seed:
-        QMessageBox.information(parent, _('Error'), _('No seed'), _('OK'))
+    if wallet and wallet.is_watching_only():
+        QMessageBox.information(parent, _('Error'), _('This is a watching-only wallet'), _('OK'))
         return False, None, None
 
     if not self.exec_():
@@ -116,7 +116,7 @@ class PasswordDialog(QDialog):
             return
 
         try:
-            self.wallet.get_seed(password)
+            self.wallet.check_password(password)
         except Exception:
             QMessageBox.warning(self.parent, _('Error'), _('Incorrect Password'), _('OK'))
             return False, None, None
@@ -124,6 +124,8 @@ class PasswordDialog(QDialog):
         try:
             self.wallet.update_password(password, new_password)
         except:
+            import traceback, sys
+            traceback.print_exc(file=sys.stdout)
             QMessageBox.warning(self.parent, _('Error'), _('Failed to update password'), _('OK'))
             return
 

@@ -20,7 +20,34 @@
 
 import hashlib, base64, ecdsa, re
 import hmac
+import aes
 from util import print_error
+
+# AES encryption
+EncodeAES = lambda secret, s: base64.b64encode(aes.encryptData(secret,s))
+DecodeAES = lambda secret, e: aes.decryptData(secret, base64.b64decode(e))
+
+def pw_encode(s, password):
+    if password:
+        secret = Hash(password)
+        return EncodeAES(secret, s.encode("utf8"))
+    else:
+        return s
+
+def pw_decode(s, password):
+    if password is not None:
+        secret = Hash(password)
+        try:
+            d = DecodeAES(secret, s).decode("utf8")
+        except Exception:
+            raise Exception('Invalid password')
+        return d
+    else:
+        return s
+
+
+
+
 
 def rev_hex(s):
     return s.decode('hex')[::-1].encode('hex')
@@ -71,7 +98,7 @@ def mnemonic_to_seed(mnemonic, passphrase):
     return PBKDF2(mnemonic, 'mnemonic' + passphrase, iterations = PBKDF2_ROUNDS, macmodule = hmac, digestmodule = hashlib.sha512).read(64)
 
 from version import SEED_PREFIX
-is_new_seed = lambda x: hmac_sha_512("Seed version", x).encode('hex')[0:2].startswith(SEED_PREFIX)
+is_new_seed = lambda x: hmac_sha_512("Seed version", x.encode('utf8')).encode('hex')[0:2].startswith(SEED_PREFIX)
 
 def is_old_seed(seed):
     import mnemonic
@@ -285,6 +312,10 @@ def address_from_private_key(sec):
 
 
 def is_valid(addr):
+    return is_address(addr)
+
+
+def is_address(addr):
     ADDRESS_RE = re.compile('[1-9A-HJ-NP-Za-km-z]{26,}\\Z')
     if not ADDRESS_RE.match(addr): return False
     try:
@@ -292,6 +323,14 @@ def is_valid(addr):
     except Exception:
         return False
     return addr == hash_160_to_bc_address(h, addrtype)
+
+
+def is_private_key(key):
+    try:
+        k = ASecretToSecret(key) 
+        return k is not False
+    except:
+        return False
 
 
 ########### end pywallet functions #######################

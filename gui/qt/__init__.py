@@ -147,28 +147,47 @@ class ElectrumGui:
         return int(qtVersion[0]) >= 4 and int(qtVersion[2]) >= 7
 
 
+    def set_url(self, url):
+        from electrum import util
+        from decimal import Decimal
+        try:
+            address, amount, label, message, url = util.parse_url(url)
+        except Exception:
+            QMessageBox.warning(self.main_window, _('Error'), _('Invalid bitcoin URL'), _('OK'))
+            return
+
+        try:
+            if amount and self.main_window.base_unit() == 'mBTC': 
+                amount = str( 1000* Decimal(amount))
+            elif amount: 
+                amount = str(Decimal(amount))
+        except Exception:
+            amount = "0.0"
+            QMessageBox.warning(self.main_window, _('Error'), _('Invalid Amount'), _('OK'))
+
+            
+        self.main_window.set_send(address, amount, label, message)
+        if self.lite_window:
+            self.lite_window.set_payment_fields(address, amount)
+
 
     def main(self, url):
 
         storage = WalletStorage(self.config)
-        if not storage.file_exists:
-            import installwizard
-            wizard = installwizard.InstallWizard(self.config, self.network, storage)
-            wallet = wizard.run()
-            if not wallet: 
-                exit()
-
-        elif storage.get('wallet_type') in ['2of3'] and storage.get('seed') is None:
-            import installwizard
-            wizard = installwizard.InstallWizard(self.config, self.network, storage)
-            wallet = wizard.run(action= 'create2of3')
-            if not wallet: 
-                exit()
-
-        else:
+        if storage.file_exists:
             wallet = Wallet(storage)
+            action = wallet.get_action()
+        else:
+            action = 'new'
+
+        if action is not None:
+            import installwizard
+            wizard = installwizard.InstallWizard(self.config, self.network, storage)
+            wallet = wizard.run(action)
+            if not wallet: 
+                exit()
+        else:
             wallet.start_threads(self.network)
-            
 
         # init tray
         self.dark_icon = self.config.get("dark_icon", False)
@@ -195,7 +214,9 @@ class ElectrumGui:
         s.start()
 
         self.windows.append(w)
-        if url: w.set_url(url)
+        if url: 
+            self.set_url(url)
+
         w.app = self.app
         w.connect_slots(s)
         w.update_wallet()
