@@ -1878,7 +1878,7 @@ class ElectrumWindow(QMainWindow):
         hbox = QHBoxLayout()
         vbox.addLayout(hbox)
 
-        defaultname = 'electrum-private-keys.csv'
+        defaultname = 'electrum-myr-private-keys.csv'
         directory = self.config.get('io_dir', unicode(os.path.expanduser('~')))
         path = os.path.join( directory, defaultname )
         filename_e = QLineEdit()

@@ -16,7 +16,7 @@ import threading
 from electrum_myr.plugins import run_hook
 
 
-MSG_ENTER_ANYTHING    = _("Please enter a wallet seed, a master public key, a list of Bitcoin addresses, or a list of private keys")
+MSG_ENTER_ANYTHING    = _("Please enter a wallet seed, a master public key, a list of Myriadcoin addresses, or a list of private keys")
 MSG_ENTER_MPK         = _("Please enter your master public key")
 MSG_ENTER_SEED_OR_MPK = _("Please enter a wallet seed, or master public key")
 MSG_VERIFY_SEED       = _("Your seed is important!") + "\n" + _("To make sure that you have properly saved your seed, please retype it here.")

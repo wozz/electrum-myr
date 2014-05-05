@@ -153,11 +153,11 @@ class ElectrumGui:
         try:
             address, amount, label, message, url = util.parse_url(url)
         except Exception:
-            QMessageBox.warning(self.main_window, _('Error'), _('Invalid bitcoin URL'), _('OK'))
+            QMessageBox.warning(self.main_window, _('Error'), _('Invalid myriadcoin URL'), _('OK'))
             return
 
         try:
-            if amount and self.main_window.base_unit() == 'mBTC': 
+            if amount and self.main_window.base_unit() == 'mMYR': 
                 amount = str( 1000* Decimal(amount))
             elif amount: 
                 amount = str(Decimal(amount))
