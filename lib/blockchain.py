@@ -135,7 +135,7 @@ class Blockchain(threading.Thread):
             height = header.get('block_height')
 
             prev_hash = self.hash_header(prev_header)
-            bits, target = self.get_target(height/2016, chain)
+            bits, target = self.get_target(height, chain)
             _hash = self.pow_hash_header(header)
             try:
                 assert prev_hash == header.get('prev_block_hash')
@@ -162,14 +162,38 @@ class Blockchain(threading.Thread):
             if prev_header is None: raise
             previous_hash = self.hash_header(prev_header)
 
-        bits, target = self.get_target(index)
+        print "start"
+        bits, target = self.get_target(index*2016)
+        print bits
+        print target
 
         for i in range(num):
             height = index*2016 + i
+            bits, target = self.get_target(height)
+            print bits
+            print target
             raw_header = data[i*80:(i+1)*80]
             header = self.header_from_string(raw_header)
-            _hash = self.pow_hash_header(header)
+            version = header.get('version')
+            print version
+            if version == 2:
+                print header
+                _hash = self.pow_hash_sha_header(header)
+            elif version == 514:
+                _hash = self.pow_hash_scrypt_header(header)
+            elif version == 1026:
+                _hash = self.pow_hash_groestl_header(header)
+            elif version == 1538:
+                _hash = self.pow_hash_skein_header(header)
+            elif version == 2050:
+                _hash = self.pow_hash_qubit_header(header)
+            else:
+                print "error unknown version"
+            print previous_hash
+            print header.get('prev_block_hash')
             assert previous_hash == header.get('prev_block_hash')
+            print header.get('bits')
+            print bits
             assert bits == header.get('bits')
             assert int('0x'+_hash,16) < target
 
@@ -206,16 +230,20 @@ class Blockchain(threading.Thread):
         return rev_hex(Hash(self.header_to_string(header).decode('hex')).encode('hex'))
 
     def pow_hash_scrypt_header(self, header):
+        print "scrypt"
         return rev_hex(getPoWScryptHash(self.header_to_string(header).decode('hex')).encode('hex'))
 
     def pow_hash_sha_header(self,header):
-        return hash_header(header)
+        return self.hash_header(header)
 
-#    def getPoWSkeinHash(self, header):
-#        return sha256(skein(header))
+    def pow_hash_skein_header(self,header):
+        return rev_hex(getPoWSkeinHash(self.header_to_string(header).decode('hex')).encode('hex'))
 
-#    def pow_hash_skein_header(self,header):
-#        return rev_hex(getPoWSkeinHash(self.header_to_string(header).decode('hex')).encode('hex'))
+    def pow_hash_groestl_header(self,header):
+        return rev_hex(getPoWGroestlHash(self.header_to_string(header).decode('hex')).encode('hex'))
+
+    def pow_hash_qubit_header(self,header):
+        return rev_hex(getPoWQubitHash(self.header_to_string(header).decode('hex')).encode('hex'))
 
     def path(self):
         return os.path.join( self.config.path, 'blockchain_headers')
@@ -275,24 +303,26 @@ class Blockchain(threading.Thread):
                 return h 
 
 
-    def get_target(self, index, chain=[]):
+    def get_target(self, height, chain=[]):
 
+        print "get_target"
         max_target = 0x00000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
-        if index == 0: return 0x1e0ffff0, 0x00000FFFF0000000000000000000000000000000000000000000000000000000
+        if height == 0: return 0x1e0fffff, 0x00000FFFF0000000000000000000000000000000000000000000000000000000
 
-        # Litecoin: go back the full period unless it's the first retarget
-        if index == 1:
+        # Myriadcoin
+        if height == 1:
             first = self.read_header(0)
         else:
-            first = self.read_header((index-1)*2016-1)
-        last = self.read_header(index*2016-1)
+            first = self.read_header(height-10)
+        last = self.read_header(height-1)
         if last is None:
             for h in chain:
-                if h.get('block_height') == index*2016-1:
+                if h.get('block_height') == height-1:
                     last = h
  
+        print "start time stuff"
         nActualTimespan = last.get('timestamp') - first.get('timestamp')
-        nTargetTimespan = 84*60*60
+        nTargetTimespan = 30*5
         nActualTimespan = max(nActualTimespan, nTargetTimespan/4)
         nActualTimespan = min(nActualTimespan, nTargetTimespan*4)
 
