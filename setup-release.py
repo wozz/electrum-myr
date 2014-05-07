@@ -39,7 +39,7 @@ if sys.platform == 'darwin':
                                  includes=['PyQt4.QtCore', 'PyQt4.QtGui', 'PyQt4.QtNetwork', 'sip'],
                                  packages=['lib', 'gui', 'plugins'],
                                  iconfile='electrum.icns',
-                                 plist=plist,
+                                 plist=plist,strip=True,
                                  resources=["data", "icons"])),
     )
 elif sys.platform == 'win32':
