@@ -476,6 +476,8 @@ class ElectrumWindow(QMainWindow):
         be = self.config.get('block_explorer', 'myriad.theblockexplorer.com')
         if be == 'myriad.theblockexplorer.com':
             block_explorer = 'http://myriad.theblockexplorer.com/tx/'
+        if be == 'myriad.thwg.org':
+            block_explorer = 'http://myriad.thwg.org/tx/'
         if not item: return
         tx_hash = str(item.data(0, Qt.UserRole).toString())
         if not tx_hash: return
@@ -2140,7 +2142,7 @@ class ElectrumWindow(QMainWindow):
         grid.addWidget(HelpButton(_('Using change addresses makes it more difficult for other people to track your transactions.')+' '), 4, 2)
         if not self.config.is_modifiable('use_change'): usechange_cb.setEnabled(False)
 
-        block_explorers = ['myriad.theblockexplorer.com']
+        block_explorers = ['myriad.theblockexplorer.com', 'myriad.thwg.org']
         block_ex_label = QLabel(_('Online Block Explorer') + ':')
         grid.addWidget(block_ex_label, 5, 0)
         block_ex_combo = QComboBox()
