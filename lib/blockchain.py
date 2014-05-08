@@ -141,15 +141,33 @@ class Blockchain(threading.Thread):
 
         first_header = chain[0]
         prev_header = self.read_header(first_header.get('block_height') -1)
+        print_error('first ', first_header)
+        print_error('prev_header ', prev_header)
         
         for header in chain:
 
+            print_error('header in chain', header)
             height = header.get('block_height')
+            print_error('height in chain ', height)
 
             prev_hash = self.hash_header(prev_header)
             bits, target = self.get_target(height, chain)
-            _hash = self.pow_hash_header(header)
+            version = header.get('version')
+            if version == 2:
+                _hash = self.pow_hash_sha_header(header)
+            elif version == 514:
+                _hash = self.pow_hash_scrypt_header(header)
+            elif version == 1026:
+                _hash = self.pow_hash_groestl_header(header)
+            elif version == 1538:
+                _hash = self.pow_hash_skein_header(header)
+            elif version == 2050:
+                _hash = self.pow_hash_qubit_header(header)
+            else:
+                print_error( "error unknown block version")
             try:
+                print_error('header ', header)
+                print_error('bits ', bits)
                 assert prev_hash == header.get('prev_block_hash')
                 assert bits == header.get('bits')
                 assert int('0x'+_hash,16) < target
@@ -179,15 +197,15 @@ class Blockchain(threading.Thread):
         print_error("bits: ",bits)
         print_error("target: ",target)
 
-        for i in range(num):
+        for i in xrange(num):
             height = index*2016 + i
             bits, target = self.get_target(height, data=data)
-            print_error("bits: ",bits)
-            print_error("target: ",target)
+            #print_error("bits: ",bits)
+            #print_error("target: ",target)
             raw_header = data[i*80:(i+1)*80]
             header = self.header_from_string(raw_header)
             version = header.get('version')
-            print_error("blockversion: ", version)
+            #print_error("blockversion: ", version)
             if version == 2:
                 _hash = self.pow_hash_sha_header(header)
             elif version == 514:
@@ -200,11 +218,11 @@ class Blockchain(threading.Thread):
                 _hash = self.pow_hash_qubit_header(header)
             else:
                 print_error( "error unknown block version")
-            print_error("previous hash ",previous_hash)
-            print_error("prevhead hash ",header.get('prev_block_hash'))
+            #print_error("previous hash ",previous_hash)
+            #print_error("prevhead hash ",header.get('prev_block_hash'))
             assert previous_hash == header.get('prev_block_hash')
-            print_error("prevhead bits ", header.get('bits'))
-            print_error("previous bits ", bits)
+            #print_error("prevhead bits ", header.get('bits'))
+            #print_error("previous bits ", bits)
             assert bits == header.get('bits')
             assert int('0x'+_hash,16) < target
 
@@ -321,9 +339,9 @@ class Blockchain(threading.Thread):
 
         header_db_file = sqlite3.connect(self.db_path())
         header_db = header_db_file.cursor()
-        print_error( "enter get_target")
+        #print_error( "enter get_target")
         max_target = 0x00000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
-        print_error('first header', data[0:80].encode('hex'))
+        #print_error('first header', data[0:80].encode('hex'))
         if height == 0 and data: 
             header_db.execute('''INSERT OR REPLACE INTO headers VALUES ('%s', '%s', '%s')''' % (data[0:80].encode('hex'), str(2), str(0)))
             header_db_file.commit()
@@ -337,20 +355,38 @@ class Blockchain(threading.Thread):
             first = self.read_header(height-10)
         last = self.read_header(height-1)
 
+        #print_error('last header ', last)
 
-        if last is None:
-            for h in chain:
-                if h.get('block_height') == height-1:
-                    last = h
+        #if last is None:
+        #    for h in chain:
+        #        if h.get('block_height') == height-1:
+        #            last = h
  
+        if not data and chain:
+            for h in chain:
+                if h.get('block_height') == height:
+                    last = h
+            try:
+                header_db.execute('''INSERT OR REPLACE INTO headers VALUES ('%s', '%s', '%s')''' % (self.header_to_string(last), str(last.get('version')), str(height)))
+                header_db_file.commit()
+                select = header_db.execute('''SELECT header from headers where algo = '%s' and height < '%s' ORDER BY height DESC LIMIT 10''' % (last.get('version'), str(height))).fetchall()[-1][0]
+                first = self.header_from_string(select.decode('hex'))
+                print_error('selected ', select)
+                print_error('first ', first)
+                print_error('last ', self.header_to_string(last), last.get('version'),height )
+            except Exception, e:
+                print_error('exception: ', e)
+            
+
         if data:
             m = height % 2016
             print_error('m: ', m)
             h_to_insert = data[m*80:(m+1)*80].encode('hex')
-            print_error('h_insert', h_to_insert)
+            #print_error('h_insert', h_to_insert)
             try:
-                print_error('INSERT OR REPLACE INTO headers VALUES()', h_to_insert, self.header_from_string(h_to_insert.decode('hex')).get('version'), height)
+         #       print_error('INSERT OR REPLACE INTO headers VALUES()', h_to_insert, self.header_from_string(h_to_insert.decode('hex')).get('version'), height)
                 header_db.execute('''INSERT OR REPLACE INTO headers VALUES ('%s', '%s', '%s')''' % (h_to_insert, str(self.header_from_string(h_to_insert.decode('hex')).get('version')), str(height)))
+                header_db_file.commit()
             except Exception, e:
                 print_error('exception: ', e)
             if m >= 10:
@@ -359,41 +395,52 @@ class Blockchain(threading.Thread):
                 first = self.header_from_string(raw_header)
                 raw_l_header = data[m*80:(m+1)*80]
                 last = self.header_from_string(raw_l_header)
-                print_error('first before select: ', first)
-                print_error('last version before select: ', last.get('version'))
+          #      print_error('first before select: ', first)
+          #      print_error('last version before select: ', last.get('version'))
                 try:
-                    select = header_db.execute('''SELECT header from headers where algo = '%s' and height < '%s' ORDER BY height DESC LIMIT 10''' % (last.get('version'),height)).fetchall()[-1][0]
-                    print_error('selected header: ', select)
+                    select = header_db.execute('''SELECT header from headers where algo = '%s' and height < '%s' ORDER BY height DESC LIMIT 10''' % (last.get('version'), height)).fetchall()[-1][0]
+          #          print_error('selected header: ', select)
+                    first = self.header_from_string(select.decode('hex'))
                 except Exception, e:
+                    
                     print_error('select error: ', e)
-                first = self.header_from_string(select.decode('hex'))
-                print_error('first after select: ', first)
+           #     print_error('first after select: ', first)
             elif height < 10:
-                print_error("height < 10")
+            #    print_error("height < 10")
                 raw_header = data[0:80]
                 first = self.header_from_string(raw_header)
                 raw_l_header = data[m*80:(m+1)*80]
                 last = self.header_from_string(raw_l_header)
             else:
-                print "else"
+         #       print "else"
                 first = self.read_header(height - 10)
-                last = self.read_header(height-1)
-        print_error( "start time stuff")
-        print_error( "last header: ", last)
+                raw_l_header = data[m*80:(m+1)*80]
+                last = self.header_from_string(raw_l_header)
+            
+        #print_error( "start time stuff")
+        #print_error( "last header: ", last)
         nActualTimespan = last.get('timestamp') - first.get('timestamp')
         print_error("1 act time: ",  nActualTimespan)
         nTargetTimespan = 30*5
         nAvgInterval = 10*nTargetTimespan
         print_error("2 targ time:",  nAvgInterval)
 
-        numheaders = header_db.execute('''SELECT count(*) from headers where algo = '%s' and height < '%s' ''' % (last.get('version'),height)).fetchone()[0]
-        print_error('height, numheaders', height, numheaders)
+        numheaders = 10
+        #shouldn't need this after a while, assume 10K is enough:
+        if height < 10000:
+            numheaders = header_db.execute('''SELECT count(*) from headers where algo = '%s' and height < '%s' ''' % (last.get('version'),height)).fetchone()[0]
+            print_error('height, numheaders', height, numheaders)
+        else:
+            print_error('height', height)
 
-        if numheaders > 10:
-            if nActualTimespan < nAvgInterval*(98.0/100.0):
-                nActualTimespan = nAvgInterval*(98.0/100.0)
-            if nActualTimespan > nAvgInterval*(104.0/100.0):
-                nActualTimespan = nAvgInterval*(104.0/100.0)
+        if numheaders >= 10:
+            if nActualTimespan < nAvgInterval*(100.0/100.0):
+                nActualTimespan = nAvgInterval*(100.0/100.0)
+            if nActualTimespan > nAvgInterval*(100.0/100.0):
+                nActualTimespan = nAvgInterval*(100.0/100.0)
+        else:
+            return 0x1e0fffff, 0x00000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+
         print_error("3 act time: ", nActualTimespan)
 
         bits = last.get('bits') 
@@ -415,7 +462,7 @@ class Blockchain(threading.Thread):
             i -= 1
 
         c = int('0x'+c[0:6],16)
-        if c > 0x800000: 
+        if c >= 0x800000: 
             c /= 256
             i += 1
 
