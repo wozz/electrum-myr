@@ -21,6 +21,7 @@ import threading, time, Queue, os, sys, shutil
 from util import user_dir, appdata_dir, print_error, print_msg
 from bitcoin import *
 import hashlib
+import sqlite3
 
 try:
     from ltc_scrypt import getPoWHash as getPoWScryptHash
@@ -57,6 +58,17 @@ class Blockchain(threading.Thread):
         self.headers_url = 'http://headers.myr.electr.us/blockchain_headers'
         self.set_local_height()
         self.queue = Queue.Queue()
+        header_db_file = sqlite3.connect(self.db_path())
+        header_db = header_db_file.cursor()
+        try:
+            first_header = header_db.execute('SELECT * FROM headers WHERE height = 0')
+            print_error('select worked')
+        except Exception:
+            print_error('create')
+            header_db.execute('CREATE TABLE headers (header, algo, height int UNIQUE)')
+            print_error('create done')
+        header_db_file.commit()
+        header_db_file.close()
 
     
     def height(self):
@@ -158,26 +170,25 @@ class Blockchain(threading.Thread):
         if index == 0:  
             previous_hash = ("0"*64)
         else:
-            prev_header = self.read_header(index*2016-1)
+            prev_header = self.read_header(height-1)
             if prev_header is None: raise
             previous_hash = self.hash_header(prev_header)
 
-        print "start"
-        bits, target = self.get_target(index*2016)
-        print bits
-        print target
+        print_error( "start verify_chunk")
+        bits, target = self.get_target(height, data=data)
+        print_error("bits: ",bits)
+        print_error("target: ",target)
 
         for i in range(num):
             height = index*2016 + i
-            bits, target = self.get_target(height)
-            print bits
-            print target
+            bits, target = self.get_target(height, data=data)
+            print_error("bits: ",bits)
+            print_error("target: ",target)
             raw_header = data[i*80:(i+1)*80]
             header = self.header_from_string(raw_header)
             version = header.get('version')
-            print version
+            print_error("blockversion: ", version)
             if version == 2:
-                print header
                 _hash = self.pow_hash_sha_header(header)
             elif version == 514:
                 _hash = self.pow_hash_scrypt_header(header)
@@ -188,12 +199,12 @@ class Blockchain(threading.Thread):
             elif version == 2050:
                 _hash = self.pow_hash_qubit_header(header)
             else:
-                print "error unknown version"
-            print previous_hash
-            print header.get('prev_block_hash')
+                print_error( "error unknown block version")
+            print_error("previous hash ",previous_hash)
+            print_error("prevhead hash ",header.get('prev_block_hash'))
             assert previous_hash == header.get('prev_block_hash')
-            print header.get('bits')
-            print bits
+            print_error("prevhead bits ", header.get('bits'))
+            print_error("previous bits ", bits)
             assert bits == header.get('bits')
             assert int('0x'+_hash,16) < target
 
@@ -230,7 +241,6 @@ class Blockchain(threading.Thread):
         return rev_hex(Hash(self.header_to_string(header).decode('hex')).encode('hex'))
 
     def pow_hash_scrypt_header(self, header):
-        print "scrypt"
         return rev_hex(getPoWScryptHash(self.header_to_string(header).decode('hex')).encode('hex'))
 
     def pow_hash_sha_header(self,header):
@@ -247,6 +257,10 @@ class Blockchain(threading.Thread):
 
     def path(self):
         return os.path.join( self.config.path, 'blockchain_headers')
+    
+    def db_path(self):
+        return os.path.join(self.config.path, 'headers.db')
+
 
     def init_headers_file(self):
         filename = self.path()
@@ -303,28 +317,84 @@ class Blockchain(threading.Thread):
                 return h 
 
 
-    def get_target(self, height, chain=[]):
+    def get_target(self, height, chain=[], data=None):
 
-        print "get_target"
+        header_db_file = sqlite3.connect(self.db_path())
+        header_db = header_db_file.cursor()
+        print_error( "enter get_target")
         max_target = 0x00000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+        print_error('first header', data[0:80].encode('hex'))
+        if height == 0 and data: 
+            header_db.execute('''INSERT OR REPLACE INTO headers VALUES ('%s', '%s', '%s')''' % (data[0:80].encode('hex'), str(2), str(0)))
+            header_db_file.commit()
+            header_db_file.close()
         if height == 0: return 0x1e0fffff, 0x00000FFFF0000000000000000000000000000000000000000000000000000000
 
         # Myriadcoin
-        if height == 1:
+        if height < 10:
             first = self.read_header(0)
         else:
             first = self.read_header(height-10)
         last = self.read_header(height-1)
+
+
         if last is None:
             for h in chain:
                 if h.get('block_height') == height-1:
                     last = h
  
-        print "start time stuff"
+        if data:
+            m = height % 2016
+            print_error('m: ', m)
+            h_to_insert = data[m*80:(m+1)*80].encode('hex')
+            print_error('h_insert', h_to_insert)
+            try:
+                print_error('INSERT OR REPLACE INTO headers VALUES()', h_to_insert, self.header_from_string(h_to_insert.decode('hex')).get('version'), height)
+                header_db.execute('''INSERT OR REPLACE INTO headers VALUES ('%s', '%s', '%s')''' % (h_to_insert, str(self.header_from_string(h_to_insert.decode('hex')).get('version')), str(height)))
+            except Exception, e:
+                print_error('exception: ', e)
+            if m >= 10:
+                print_error( "m >= 10")
+                raw_header = data[(m-10)*80:(m-9)*80]
+                first = self.header_from_string(raw_header)
+                raw_l_header = data[m*80:(m+1)*80]
+                last = self.header_from_string(raw_l_header)
+                print_error('first before select: ', first)
+                print_error('last version before select: ', last.get('version'))
+                try:
+                    select = header_db.execute('''SELECT header from headers where algo = '%s' and height < '%s' ORDER BY height DESC LIMIT 10''' % (last.get('version'),height)).fetchall()[-1][0]
+                    print_error('selected header: ', select)
+                except Exception, e:
+                    print_error('select error: ', e)
+                first = self.header_from_string(select.decode('hex'))
+                print_error('first after select: ', first)
+            elif height < 10:
+                print_error("height < 10")
+                raw_header = data[0:80]
+                first = self.header_from_string(raw_header)
+                raw_l_header = data[m*80:(m+1)*80]
+                last = self.header_from_string(raw_l_header)
+            else:
+                print "else"
+                first = self.read_header(height - 10)
+                last = self.read_header(height-1)
+        print_error( "start time stuff")
+        print_error( "last header: ", last)
         nActualTimespan = last.get('timestamp') - first.get('timestamp')
+        print_error("1 act time: ",  nActualTimespan)
         nTargetTimespan = 30*5
-        nActualTimespan = max(nActualTimespan, nTargetTimespan/4)
-        nActualTimespan = min(nActualTimespan, nTargetTimespan*4)
+        nAvgInterval = 10*nTargetTimespan
+        print_error("2 targ time:",  nAvgInterval)
+
+        numheaders = header_db.execute('''SELECT count(*) from headers where algo = '%s' and height < '%s' ''' % (last.get('version'),height)).fetchone()[0]
+        print_error('height, numheaders', height, numheaders)
+
+        if numheaders > 10:
+            if nActualTimespan < nAvgInterval*(98.0/100.0):
+                nActualTimespan = nAvgInterval*(98.0/100.0)
+            if nActualTimespan > nAvgInterval*(104.0/100.0):
+                nActualTimespan = nAvgInterval*(104.0/100.0)
+        print_error("3 act time: ", nActualTimespan)
 
         bits = last.get('bits') 
         # convert to bignum
@@ -335,7 +405,7 @@ class Blockchain(threading.Thread):
         target = (a) * pow(2, 8 * (bits/MM - 3))
 
         # new target
-        new_target = min( max_target, (target * nActualTimespan)/nTargetTimespan )
+        new_target = min( max_target, (target * nActualTimespan)/nAvgInterval )
         
         # convert it to bits
         c = ("%064X"%new_target)[2:]
@@ -350,6 +420,8 @@ class Blockchain(threading.Thread):
             i += 1
 
         new_bits = c + MM * i
+        header_db_file.commit()
+        header_db_file.close()
         return new_bits, new_target
 
 
