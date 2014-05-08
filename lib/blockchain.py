@@ -328,7 +328,7 @@ class Blockchain(threading.Thread):
             header_db.execute('''INSERT OR REPLACE INTO headers VALUES ('%s', '%s', '%s')''' % (data[0:80].encode('hex'), str(2), str(0)))
             header_db_file.commit()
             header_db_file.close()
-        if height == 0: return 0x1e0fffff, 0x00000FFFF0000000000000000000000000000000000000000000000000000000
+        if height == 0: return 0x1e0fffff, 0x00000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
 
         # Myriadcoin
         if height < 10:
