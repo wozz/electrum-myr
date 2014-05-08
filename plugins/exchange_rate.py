@@ -15,7 +15,8 @@ from electrum_myr_gui.qt.util import *
 from electrum_myr_gui.qt.amountedit import AmountEdit
 
 
-EXCHANGES = ["MintPal",
+EXCHANGES = ["Cryptsy",
+             "MintPal",
              "Prelude"]
 
 
@@ -35,9 +36,12 @@ class Exchanger(threading.Thread):
         self.parent.win.emit(SIGNAL("refresh_currencies_combo()"))
         self.is_running = False
 
-    def get_json(self, site, get_string):
+    def get_json(self, site, get_string, http=False):
         try:
-            connection = httplib.HTTPSConnection(site)
+            if not http:
+                connection = httplib.HTTPSConnection(site)
+            else:
+                connection = httplib.HTTPConnection(site)
             connection.request("GET", get_string)
         except Exception:
             raise
@@ -66,6 +70,7 @@ class Exchanger(threading.Thread):
     def update_rate(self):
         self.use_exchange = self.parent.config.get('use_exchange', "MintPal")
         update_rates = {
+            "Cryptsy": self.update_c,
             "MintPal": self.update_mp,
             "Prelude": self.update_pl,
         }
@@ -102,6 +107,21 @@ class Exchanger(threading.Thread):
         try:
             btcprice = jsonresp["last"]
             quote_currencies["BTC"] = decimal.Decimal(str(btcprice))
+            with self.lock:
+                self.quote_currencies = quote_currencies
+        except KeyError:
+            pass
+        self.parent.set_currencies(quote_currencies)
+
+    def update_c(self):
+        quote_currencies = {"BTC": 0.0}
+        try:
+            jsonresp = self.get_json('pubapi.cryptsy.com', "/api.php?method=singlemarketdata&marketid=200", http=True)['return']['markets']['MYR']
+        except Exception:
+            return
+        try:
+            btcprice = jsonresp['lasttradeprice']
+            quote_currencies['BTC'] = decimal.Decimal(str(btcprice))
             with self.lock:
                 self.quote_currencies = quote_currencies
         except KeyError:

@@ -55,7 +55,7 @@ class Blockchain(threading.Thread):
         self.lock = threading.Lock()
         self.local_height = 0
         self.running = False
-        self.headers_url = 'http://headers.myr.electr.us/blockchain_headers'
+        self.headers_url = 'http://myr.electr.us/blockchain_headers'
         self.set_local_height()
         self.queue = Queue.Queue()
         header_db_file = sqlite3.connect(self.db_path())
