@@ -15,7 +15,8 @@ from electrum_myr_gui.qt.util import *
 from electrum_myr_gui.qt.amountedit import AmountEdit
 
 
-EXCHANGES = ["MintPal"]
+EXCHANGES = ["MintPal",
+             "Prelude"]
 
 
 class Exchanger(threading.Thread):
@@ -66,6 +67,7 @@ class Exchanger(threading.Thread):
         self.use_exchange = self.parent.config.get('use_exchange', "MintPal")
         update_rates = {
             "MintPal": self.update_mp,
+            "Prelude": self.update_pl,
         }
         try:
             update_rates[self.use_exchange]()
@@ -90,6 +92,22 @@ class Exchanger(threading.Thread):
         with self.lock:
             self.quote_currencies = quote_currencies
         self.parent.set_currencies(quote_currencies)
+
+    def update_pl(self):
+        quote_currencies = {"BTC": 0.0}
+        try:
+            jsonresp = self.get_json('api.prelude.io', "/last/MYR")
+        except Exception:
+            return
+        try:
+            btcprice = jsonresp["last"]
+            quote_currencies["BTC"] = decimal.Decimal(str(btcprice))
+            with self.lock:
+                self.quote_currencies = quote_currencies
+        except KeyError:
+            pass
+        self.parent.set_currencies(quote_currencies)
+
 
 
     def get_currencies(self):
