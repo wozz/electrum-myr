@@ -50,6 +50,7 @@ if __builtin__.use_local_modules:
     imp.load_module('electrum_myr_gui', *imp.find_module('gui'))
 
 from electrum_myr import *  # todo: import * is generally frowned upon. should import just what is used
+from electrum_myr.util import print_msg, print_stderr
 
 # get password routine
 def prompt_password(prompt, confirm=True):

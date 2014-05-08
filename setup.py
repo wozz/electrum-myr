@@ -81,6 +81,7 @@ setup(
         'electrum_myr.scrypt',
         'electrum_myr.simple_config',
         'electrum_myr.socks',
+        'electrum_myr.synchronizer',
         'electrum_myr.transaction',
         'electrum_myr.util',
         'electrum_myr.verifier',
