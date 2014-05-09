@@ -32,16 +32,19 @@ except ImportError:
 try:
     from groestl_hash import getPoWHash as getPoWGroestlHash
 except ImportError:
+    print_msg("Warning: groestl_hash not available, please install it")
     raise
 
 try:
     from qubit_hash import getPoWHash as getPoWQubitHash
 except ImportError:
+    print_msg("Warning: qubit_hash not available, please install it")
     raise
 
 try:
     from skeinhash import getPoWHash as getPoWSkeinHash
 except ImportError:
+    print_msg("Warning: skeinhash not available, please install it")
     raise
 
 
