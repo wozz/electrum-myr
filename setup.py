@@ -56,7 +56,7 @@ data_files += [
 setup(
     name="Electrum-MYR",
     version=version.ELECTRUM_VERSION,
-    install_requires=['slowaes', 'ecdsa>=0.9', 'ltc_scrypt'],
+    install_requires=['slowaes', 'ecdsa>=0.9', 'ltc_scrypt', 'groestl_hash', 'qubit_hash', 'skeinhash'],
     package_dir={
         'electrum_myr': 'lib',
         'electrum_myr_gui': 'gui',

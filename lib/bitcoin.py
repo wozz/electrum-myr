@@ -348,7 +348,7 @@ from ecdsa.util import string_to_number, number_to_string
 def msg_magic(message):
     varint = var_int(len(message))
     encoded_varint = "".join([chr(int(varint[i:i+2], 16)) for i in xrange(0, len(varint), 2)])
-    return "\x18Litecoin Signed Message:\n" + encoded_varint + message
+    return "\x18Myriadcoin Signed Message:\n" + encoded_varint + message
 
 
 def verify_message(address, signature, message):
@@ -656,7 +656,7 @@ def deserialize_xkey(xkey):
 def bip32_root(seed):
     import hmac
     seed = seed.decode('hex')        
-    I = hmac.new("Litecoin seed", seed, hashlib.sha512).digest()
+    I = hmac.new("Myriadcoin seed", seed, hashlib.sha512).digest()
     master_k = I[0:32]
     master_c = I[32:]
     K, cK = get_pubkeys_from_secret(master_k)
