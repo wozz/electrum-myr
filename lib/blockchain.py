@@ -388,8 +388,6 @@ class Blockchain(threading.Thread):
         if height < 10000:
             numheaders = header_db.execute('''SELECT count(*) from headers where algo = '%s' and height < '%s' ''' % (last.get('version'),height)).fetchone()[0]
             print_error('height, numheaders', height, numheaders)
-        else:
-            print_error('height', height)
 
         if numheaders >= 10:
             #seems to be a bug based on what the myriadcoind code says... will check later
