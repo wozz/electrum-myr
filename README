@@ -3,11 +3,16 @@ Electrum - lightweight Myriadcoin client
 Licence: GNU GPL v3
 Electrum Author: Thomas Voegtlin
 Language: Python
-Homepage: https://electrum.org/
+
+Electrum Myriadcoin Homepage: TBD
 
 Electrum Myriadcoin Author: Michael Wozniak
 
 
+Works best with Python2.7 and PyQT/QT4
+Will not work with Python3 or QT5
+
+requires ecdsa, slowaes, sqlite3
 
 MYRIADCOIN DEPENDENCIES:
 
