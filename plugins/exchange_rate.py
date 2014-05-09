@@ -94,6 +94,9 @@ class Exchanger(threading.Thread):
                 quote_currencies[cur] = Decimal(self.get_json('api.mintpal.com', "/v1/market/stats/MYR/BTC")[0]['last_price'])
             except Exception:
                 pass
+        quote_currencies['mBTC'] = quote_currencies['BTC'] * Decimal('1000.0')
+        quote_currencies['uBTC'] = quote_currencies['mBTC'] * Decimal('1000.0')
+        quote_currencies['sat'] = quote_currencies['uBTC'] * Decimal('100.0')
         with self.lock:
             self.quote_currencies = quote_currencies
         self.parent.set_currencies(quote_currencies)
@@ -107,6 +110,9 @@ class Exchanger(threading.Thread):
         try:
             btcprice = jsonresp["last"]
             quote_currencies["BTC"] = decimal.Decimal(str(btcprice))
+            quote_currencies['mBTC'] = quote_currencies['BTC'] * Decimal('1000.0')
+            quote_currencies['uBTC'] = quote_currencies['mBTC'] * Decimal('1000.0')
+            quote_currencies['sat'] = quote_currencies['uBTC'] * Decimal('100.0')
             with self.lock:
                 self.quote_currencies = quote_currencies
         except KeyError:
@@ -122,6 +128,9 @@ class Exchanger(threading.Thread):
         try:
             btcprice = jsonresp['lasttradeprice']
             quote_currencies['BTC'] = decimal.Decimal(str(btcprice))
+            quote_currencies['mBTC'] = quote_currencies['BTC'] * Decimal('1000.0')
+            quote_currencies['uBTC'] = quote_currencies['mBTC'] * Decimal('1000.0')
+            quote_currencies['sat'] = quote_currencies['uBTC'] * Decimal('100.0')
             with self.lock:
                 self.quote_currencies = quote_currencies
         except KeyError:
@@ -181,7 +190,7 @@ class Plugin(BasePlugin):
         quote = r.get(0)
         if quote:
             price_text = "1 MYR~%s"%quote
-            fiat_currency = quote[-3:]
+            fiat_currency = self.fiat_unit()
             btc_price = self.btc_rate
             fiat_balance = Decimal(btc_price) * (Decimal(btc_balance)/100000000)
             balance_text = "(%.2f %s)" % (fiat_balance,fiat_currency)
