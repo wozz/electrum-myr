@@ -478,7 +478,7 @@ class ElectrumWindow(QMainWindow):
         item = self.history_list.currentItem()
         be = self.config.get('block_explorer', 'myriad.theblockexplorer.com')
         if be == 'myriad.theblockexplorer.com':
-            block_explorer = 'http://myriad.theblockexplorer.com/tx/'
+            block_explorer = 'http://myriad.theblockexplorer.com:2750/tx/'
         if be == 'myriad.thwg.org':
             block_explorer = 'http://myriad.thwg.org/tx/'
         if not item: return
