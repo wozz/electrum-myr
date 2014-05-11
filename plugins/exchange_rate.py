@@ -138,7 +138,6 @@ class Exchanger(threading.Thread):
         self.parent.set_currencies(quote_currencies)
 
 
-
     def get_currencies(self):
         return [] if self.quote_currencies == None else sorted(self.quote_currencies.keys())
 
