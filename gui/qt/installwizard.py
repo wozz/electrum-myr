@@ -366,7 +366,7 @@ class InstallWizard(QDialog):
 
 
     def create_cold_seed(self, wallet):
-        from electrum_ltc.bitcoin import mnemonic_to_seed, bip32_root
+        from electrum_myr.bitcoin import mnemonic_to_seed, bip32_root
         msg = _('You are about to generate the cold storage seed of your wallet.') + '\n' \
               + _('For safety, you should do this on an offline computer.')
         icon = QPixmap( ':icons/cold_seed.png').scaledToWidth(56)
