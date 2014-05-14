@@ -45,7 +45,13 @@ if sys.platform == 'darwin':
 elif sys.platform == 'win32':
     extra_options = dict(
         setup_requires=['py2exe'],
-        app=[mainscript],
+        windows=[{"script":"electrum-myr"}],
+        options={"py2exe":{
+            "packages":["lib", "plugins", "gui"],
+            "includes":["sip", "PyQt4"],
+            "xref": False,
+            "skip_archive": False
+            }}
     )
 else:
     extra_options = dict(
