@@ -10,6 +10,7 @@ DEFAULT_PORTS = {'t':'50008', 's':'50009', 'h':'8088', 'g':'8089'}
 #TODO: update servers
 DEFAULT_SERVERS = {
     'myr.electr.us': DEFAULT_PORTS,
+    'myr.theblockexplorer.com': DEFAULT_PORTS,
 }
 
 
