@@ -76,6 +76,8 @@ setup(
         'electrum_myr.mnemonic',
         'electrum_myr.msqr',
         'electrum_myr.network',
+        'electrum_myr.paymentrequest',
+        'electrum_myr.paymentrequest_pb2',
         'electrum_myr.plugins',
         'electrum_myr.pyqrnative',
         'electrum_myr.scrypt',
