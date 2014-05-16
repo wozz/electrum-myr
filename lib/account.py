@@ -298,7 +298,7 @@ class BIP32_Account_2of2(BIP32_Account):
         return Transaction.multisig_script(pubkeys, 2)
 
     def get_address(self, for_change, n):
-        address = hash_160_to_bc_address(hash_160(self.redeem_script((for_change, n)).decode('hex')), 5)
+        address = hash_160_to_bc_address(hash_160(self.redeem_script((for_change, n)).decode('hex')), 9)
         return address
 
     def get_master_pubkeys(self):
