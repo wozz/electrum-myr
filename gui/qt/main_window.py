@@ -682,9 +682,13 @@ class ElectrumWindow(QMainWindow):
 
         b = EnterButton(_("Clear"),self.do_clear)
         grid.addWidget(b, 6, 2)
+        
+        self.donate_button = EnterButton(_("Donate For\nDevelopment"), lambda: self.payto('MRBurdDdLMqWLCy4Fp1wMDiKT1MK7DJFkS'))
+        grid.addWidget(self.donate_button, 7, 1)
+
 
         self.payto_sig = QLabel('')
-        grid.addWidget(self.payto_sig, 7, 0, 1, 4)
+        grid.addWidget(self.payto_sig, 8, 0, 1, 4)
 
         QShortcut(QKeySequence("Up"), w, w.focusPreviousChild)
         QShortcut(QKeySequence("Down"), w, w.focusNextChild)
