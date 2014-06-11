@@ -1,3 +1,22 @@
+#!/usr/bin/env python
+#
+# Electrum - lightweight Bitcoin client
+# Copyright (C) 2014 Thomas Voegtlin
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+
+
 import hashlib
 import httplib
 import os.path
@@ -7,82 +26,141 @@ import threading
 import time
 import traceback
 import urllib2
+import urlparse
+
 
 try:
     import paymentrequest_pb2
 except:
-    print "protoc --proto_path=lib/ --python_out=lib/ lib/paymentrequest.proto"
-    raise Exception()
+    sys.exit("Error: could not find paymentrequest_pb2.py. Create it with 'protoc --proto_path=lib/ --python_out=lib/ lib/paymentrequest.proto'")
 
-import urlparse
-import requests
-from M2Crypto import X509
-
-from bitcoin import is_valid
-import urlparse
+try:
+    import requests
+except ImportError:
+    sys.exit("Error: requests does not seem to be installed. Try 'sudo pip install requests'")
 
 
+import bitcoin
 import util
 import transaction
+import x509
 
 
 REQUEST_HEADERS = {'Accept': 'application/bitcoin-paymentrequest', 'User-Agent': 'Electrum-MYR'}
 ACK_HEADERS = {'Content-Type':'application/bitcoin-payment','Accept':'application/bitcoin-paymentack','User-Agent':'Electrum-MYR'}
 
-ca_path = os.path.expanduser("~/.electrum-myr/ca/ca-bundle.crt")
+# status can be:
+PR_UNPAID  = 0
+PR_EXPIRED = 1
+PR_SENT    = 2     # sent but not propagated
+PR_PAID    = 3     # send and propagated
+PR_ERROR   = 4     # could not parse
+
+
 ca_list = {}
-try:
-    with open(ca_path, 'r') as ca_f:
-        c = ""
-        for line in ca_f:
-            if line == "-----BEGIN CERTIFICATE-----\n":
-                c = line
-            else:
-                c += line
-            if line == "-----END CERTIFICATE-----\n":
-                x = X509.load_cert_string(c)
-                ca_list[x.get_fingerprint()] = x
-except Exception:
-    print "ERROR: Could not open %s"%ca_path
-    print "ca-bundle.crt file should be placed in ~/.electrum-myr/ca/ca-bundle.crt"
-    print "Documentation on how to download or create the file here: http://curl.haxx.se/docs/caextract.html"
-    print "Payment will continue with manual verification."
-    raise Exception()
+
+
+
+
+def load_certificates():
+
+    ca_path = os.path.expanduser("~/.electrum-myr/ca/ca-bundle.crt")
+    try:
+        ca_f = open(ca_path, 'r')
+    except Exception:
+        print "ERROR: Could not open %s"%ca_path
+        print "ca-bundle.crt file should be placed in ~/.electrum-myr/ca/ca-bundle.crt"
+        print "Documentation on how to download or create the file here: http://curl.haxx.se/docs/caextract.html"
+        print "Payment will continue with manual verification."
+        return False
+    c = ""
+    for line in ca_f:
+        if line == "-----BEGIN CERTIFICATE-----\n":
+            c = line
+        else:
+            c += line
+        if line == "-----END CERTIFICATE-----\n":
+            x = x509.X509()
+            try:
+                x.parse(c)
+            except Exception as e:
+                print "cannot parse cert:", e
+            ca_list[x.getFingerprint()] = x
+    ca_f.close()
+    util.print_error("%d certificates"%len(ca_list))
+    return True
+
+load_certificates()
+
 
 
 class PaymentRequest:
-
-    def __init__(self, url):
-        self.url = url
+    def __init__(self, config):
+        self.config = config
         self.outputs = []
         self.error = ""
+        self.dir_path = os.path.join( self.config.path, 'requests')
+        if not os.path.exists(self.dir_path):
+            os.mkdir(self.dir_path)
 
-    def get_amount(self):
-        return sum(map(lambda x:x[1], self.outputs))
-
-
-    def verify(self):
-        u = urlparse.urlparse(self.url)
+    def read(self, url):
+        self.url = url
+        u = urlparse.urlparse(url)
         self.domain = u.netloc
-
         try:
             connection = httplib.HTTPConnection(u.netloc) if u.scheme == 'http' else httplib.HTTPSConnection(u.netloc)
             connection.request("GET",u.geturl(), headers=REQUEST_HEADERS)
-            resp = connection.getresponse()
+            response = connection.getresponse()
         except:
             self.error = "cannot read url"
             return
 
-        paymntreq = paymentrequest_pb2.PaymentRequest()
         try:
-            r = resp.read()
-            paymntreq.ParseFromString(r)
+            r = response.read()
+        except:
+            self.error = "cannot read"
+            return
+
+        self.id = bitcoin.sha256(r)[0:16].encode('hex')
+        filename = os.path.join(self.dir_path, self.id)
+        with open(filename,'w') as f:
+            f.write(r)
+
+        return self.parse(r)
+
+
+    def get_status(self):
+        if self.error:
+            return self.error
+        else:
+            return self.status
+
+
+    def read_file(self, key):
+        filename = os.path.join(self.dir_path, key)
+        with open(filename,'r') as f:
+            r = f.read()
+
+        self.parse(r)
+
+
+    def parse(self, r):
+        try:
+            self.data = paymentrequest_pb2.PaymentRequest()
+            self.data.ParseFromString(r)
         except:
             self.error = "cannot parse payment request"
             return
 
-        sig = paymntreq.signature
-        if not sig:
+
+    def verify(self):
+
+        if not ca_list:
+            self.error = "Trusted certificate authorities list not found"
+            return False
+
+        paymntreq = self.data
+        if not paymntreq.signature:
             self.error = "No signature"
             return 
 
@@ -90,111 +168,123 @@ class PaymentRequest:
         cert.ParseFromString(paymntreq.pki_data)
         cert_num = len(cert.certificate)
 
-        x509_1 = X509.load_cert_der_string(cert.certificate[0])
-        if self.domain != x509_1.get_subject().CN:
-            validcert = False
-            try:
-                SANs = x509_1.get_ext("subjectAltName").get_value().split(",")
-                for s in SANs:
-                    s = s.strip()
-                    if s.startswith("DNS:") and s[4:] == self.domain:
-                        validcert = True
-                        print "Match SAN DNS"
-                    elif s.startswith("IP:") and s[3:] == self.domain:
-                        validcert = True
-                        print "Match SAN IP"
-                    elif s.startswith("email:") and s[6:] == self.domain:
-                        validcert = True
-                        print "Match SAN email"
-            except Exception, e:
-                print "ERROR: No SAN data"
-            if not validcert:
-                ###TODO: check for wildcards
-                self.error = "ERROR: Certificate Subject Domain Mismatch and SAN Mismatch"
-                return
-
-        x509 = []
-        CA_OU = ''
-
-        if cert_num > 1:
-            for i in range(cert_num - 1):
-                x509.append(X509.load_cert_der_string(cert.certificate[i+1]))
-                if x509[i].check_ca() == 0:
+        x509_chain = []
+        for i in range(cert_num):
+            x = x509.X509()
+            x.parseBinary(bytearray(cert.certificate[i]))
+            x.slow_parse()
+            x509_chain.append(x)
+            if i == 0:
+                if not x.check_name(self.domain):
+                    self.error = "Certificate Domain Mismatch"
+                    return
+            else:
+                if not x.check_ca():
                     self.error = "ERROR: Supplied CA Certificate Error"
                     return
-            for i in range(cert_num - 1):
-                if i == 0:
-                    if x509_1.verify(x509[i].get_pubkey()) != 1:
-                        self.error = "ERROR: Certificate not Signed by Provided CA Certificate Chain"
-                        return
-                else:
-                    if x509[i-1].verify(x509[i].get_pubkey()) != 1:
-                        self.error = "ERROR: CA Certificate not Signed by Provided CA Certificate Chain"
-                        return
 
-            supplied_CA_fingerprint = x509[cert_num-2].get_fingerprint()
-            supplied_CA_CN = x509[cert_num-2].get_subject().CN
-            CA_match = False
-
-            x = ca_list.get(supplied_CA_fingerprint)
-            if x:
-                CA_OU = x.get_subject().OU
-                CA_match = True
-                if x.get_subject().CN != supplied_CA_CN:
-                    print "ERROR: Trusted CA CN Mismatch; however CA has trusted fingerprint"
-                    print "Payment will continue with manual verification."
-            else:
-                print "ERROR: Supplied CA Not Found in Trusted CA Store."
-                print "Payment will continue with manual verification."
-        else:
+        if not cert_num > 1:
             self.error = "ERROR: CA Certificate Chain Not Provided by Payment Processor"
             return False
 
+        for i in range(1, cert_num):
+            x = x509_chain[i]
+            prev_x = x509_chain[i-1]
+
+            algo, sig, data = prev_x.extract_sig()
+            if algo.getComponentByName('algorithm') != x509.ALGO_RSA_SHA1:
+                self.error = "Algorithm not suported"
+                return
+
+            sig = bytearray(sig[5:])
+            pubkey = x.publicKey
+            verify = pubkey.hashAndVerify(sig, data)
+            if not verify:
+                self.error = "Certificate not Signed by Provided CA Certificate Chain"
+                return
+
+        ca = x509_chain[cert_num-1]
+        supplied_CA_fingerprint = ca.getFingerprint()
+        supplied_CA_names = ca.extract_names()
+        CA_OU = supplied_CA_names['OU']
+
+        x = ca_list.get(supplied_CA_fingerprint)
+        if x:
+            x.slow_parse()
+            names = x.extract_names()
+            CA_match = True
+            if names['CN'] != supplied_CA_names['CN']:
+                print "ERROR: Trusted CA CN Mismatch; however CA has trusted fingerprint"
+                print "Payment will continue with manual verification."
+        else:
+            CA_match = False
+
+        pubkey0 = x509_chain[0].publicKey
+        sig = paymntreq.signature
         paymntreq.signature = ''
         s = paymntreq.SerializeToString()
-        pubkey_1 = x509_1.get_pubkey()
+        sigBytes = bytearray(sig)
+        msgBytes = bytearray(s)
 
         if paymntreq.pki_type == "x509+sha256":
-            pubkey_1.reset_context(md="sha256")
+            hashBytes = bytearray(hashlib.sha256(msgBytes).digest())
+            prefixBytes = bytearray([0x30,0x31,0x30,0x0d,0x06,0x09,0x60,0x86,0x48,0x01,0x65,0x03,0x04,0x02,0x01,0x05,0x00,0x04,0x20])
+            verify = pubkey0.verify(sigBytes, prefixBytes + hashBytes)
         elif paymntreq.pki_type == "x509+sha1":
-            pubkey_1.reset_context(md="sha1")
+            verify = pubkey0.hashAndVerify(sigBytes, msgBytes)
         else:
             self.error = "ERROR: Unsupported PKI Type for Message Signature"
             return False
 
-        pubkey_1.verify_init()
-        pubkey_1.verify_update(s)
-        if pubkey_1.verify_final(sig) != 1:
+        if not verify:
             self.error = "ERROR: Invalid Signature for Payment Request Data"
             return False
 
         ### SIG Verified
-
-        self.payment_details = pay_det = paymentrequest_pb2.PaymentDetails()
-        pay_det.ParseFromString(paymntreq.serialized_payment_details)
-
-        if pay_det.expires and pay_det.expires < int(time.time()):
-            self.error = "ERROR: Payment Request has Expired."
-            return False
+        self.details = pay_det = paymentrequest_pb2.PaymentDetails()
+        self.details.ParseFromString(paymntreq.serialized_payment_details)
 
         for o in pay_det.outputs:
             addr = transaction.get_address_from_output_script(o.script)[1]
             self.outputs.append( (addr, o.amount) )
 
-        self.memo = pay_det.memo
+        self.memo = self.details.memo
 
         if CA_match:
-            print 'Signed By Trusted CA: ', CA_OU
+            self.status = 'Signed by Trusted CA:\n' + CA_OU
+        else:
+            self.status = "Supplied CA Not Found in Trusted CA Store."
 
-        print "payment url", pay_det.payment_url
+        self.payment_url = self.details.payment_url
+
+        if self.has_expired():
+            self.error = "ERROR: Payment Request has Expired."
+            return False
+
         return True
 
+    def has_expired(self):
+        return self.details.expires and self.details.expires < int(time.time())
 
+    def get_amount(self):
+        return sum(map(lambda x:x[1], self.outputs))
+
+    def get_domain(self):
+        return self.domain
+
+    def get_id(self):
+        return self.id
+
+    def get_outputs(self):
+        return self.outputs
 
     def send_ack(self, raw_tx, refund_addr):
 
-        pay_det = self.payment_details
-        if not pay_det.payment_url:
+        if self.has_expired():
+            return False, "has expired"
+
+        pay_det = self.details
+        if not self.details.payment_url:
             return False, "no url"
 
         paymnt = paymentrequest_pb2.Payment()
@@ -231,7 +321,6 @@ class PaymentRequest:
 
 
 
-
 if __name__ == "__main__":
 
     try:
@@ -248,7 +337,7 @@ if __name__ == "__main__":
 
     print 'Payment Request Verified Domain: ', pr.domain
     print 'outputs', pr.outputs
-    print 'Payment Memo: ', pr.payment_details.memo
+    print 'Payment Memo: ', pr.details.memo
 
     tx = "blah"
     pr.send_ack(tx, refund_addr = "1vXAXUnGitimzinpXrqDWVU4tyAAQ34RA")
