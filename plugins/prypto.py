@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
  
-from PyQt4.QtGui import QPushButton, QMessageBox, QDialog, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QComboBox, QLineEdit, QSpinBox, QProgressDialog
+from PyQt4.QtGui import QPushButton, QMessageBox, QDialog, QVBoxLayout, QGridLayout, QLabel, QLineEdit
 from PyQt4.QtCore import Qt, QRectF, QByteArray
  
 from electrum_myr.plugins import BasePlugin
