@@ -92,23 +92,20 @@ class Plugin(BasePlugin):
 		
 
     def do_credit(self):
-		if self.gui.main_window.question("Are you sure you want to redeem this code ?"):
-			coin = "MYR"
-			token = "88dba8ea5697f6bfe1881fa84062b81874618517"
-			act = self.get_account("")
-			myradd = act.get_addresses(False)
-			addr = str(myradd[0])
-			url = "https://prypto.com/merchants/api/?T=RX&TKN={}&COIN={}&PC={}&SC={}&RX={}".format(token, coin, str(self.pryp.text()), str(self.sec.text()), addr)
-			data = urllib2.urlopen(url)
-			response = data.read()
-			if response != None and len(response) == 64:
-				response = str(response)
-			else:
-				response = "Failed!"
-						
-						
-
-			QMessageBox.information(None,"Response:", _("TX= %s" % (str(response))))
+        if self.gui.main_window.question("Are you sure you want to redeem this code ?"):
+            coin = "MYR"
+            token = "88dba8ea5697f6bfe1881fa84062b81874618517"
+            act = self.get_account("")
+            myradd = act.get_addresses(False)
+            addr = str(myradd[0])
+            url = "https://prypto.com/merchants/api/?T=RX&TKN={}&COIN={}&PC={}&SC={}&RX={}".format(token, coin, str(self.pryp.text()), str(self.sec.text()), addr)
+            data = urllib2.urlopen(url)
+            response = data.read()
+            if response != None and len(response) == 64:
+                response = str(response)
+            else:
+                response = "Failed!"
+            QMessageBox.information(None,"Response:", _("TX= %s" % (str(response))))
 			
     def get_account(self, name):
         if self.gui.main_window.wallet.seed_version == 4:
