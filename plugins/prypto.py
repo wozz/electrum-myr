@@ -15,19 +15,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
  
-from electrum_myr.util import print_error
-from urlparse import urlparse, parse_qs
 from PyQt4.QtGui import QPushButton, QMessageBox, QDialog, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QComboBox, QLineEdit, QSpinBox, QProgressDialog
 from PyQt4.QtCore import Qt, QRectF, QByteArray
  
 from electrum_myr.plugins import BasePlugin
 from electrum_myr.i18n import _
 from electrum_myr_gui.qt.util import *
- 
-import urllib
+
 import urllib2
-import os, glob
- 
+
 class Plugin(BasePlugin):
  
     def fullname(self): return 'Redeem Prypto'
