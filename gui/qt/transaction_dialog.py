@@ -34,6 +34,8 @@ from PyQt4.QtCore import *
 import PyQt4.QtCore as QtCore
 
 from electrum_myr import transaction
+from electrum_myr.plugins import run_hook
+
 from util import MyTreeWidget
 
 class TxDialog(QDialog):
@@ -93,10 +95,19 @@ class TxDialog(QDialog):
         cancelButton.clicked.connect(lambda: self.done(0))
         buttons.addWidget(cancelButton)
         cancelButton.setDefault(True)
-        
+
+        b = QPushButton(_("Show QR code"))
+        b.clicked.connect(self.show_qr)
+        buttons.insertWidget(1,b)
         self.update()
 
 
+    def show_qr(self):
+        try:
+            json_text = json.dumps(self.tx.as_dict()).replace(' ', '')
+            self.parent.show_qrcode(json_text, 'Transaction')
+        except Exception as e:
+            self.parent.show_message(str(e))
 
 
     def sign(self):

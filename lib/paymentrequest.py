@@ -49,22 +49,14 @@ import x509
 REQUEST_HEADERS = {'Accept': 'application/bitcoin-paymentrequest', 'User-Agent': 'Electrum-MYR'}
 ACK_HEADERS = {'Content-Type':'application/bitcoin-payment','Accept':'application/bitcoin-paymentack','User-Agent':'Electrum-MYR'}
 
-# status can be:
-PR_UNPAID  = 0
-PR_EXPIRED = 1
-PR_SENT    = 2     # sent but not propagated
-PR_PAID    = 3     # send and propagated
-PR_ERROR   = 4     # could not parse
-
 
 ca_list = {}
+ca_path = os.path.expanduser("~/.electrum-myr/ca/ca-bundle.crt")
 
 
 
 
 def load_certificates():
-
-    ca_path = os.path.expanduser("~/.electrum-myr/ca/ca-bundle.crt")
     try:
         ca_f = open(ca_path, 'r')
     except Exception:
@@ -84,7 +76,7 @@ def load_certificates():
             try:
                 x.parse(c)
             except Exception as e:
-                print "cannot parse cert:", e
+                util.print_error("cannot parse cert:", e)
             ca_list[x.getFingerprint()] = x
     ca_f.close()
     util.print_error("%d certificates"%len(ca_list))
@@ -141,6 +133,8 @@ class PaymentRequest:
         with open(filename,'r') as f:
             r = f.read()
 
+        assert key == bitcoin.sha256(r)[0:16].encode('hex')
+        self.id = key
         self.parse(r)
 
 
@@ -257,14 +251,13 @@ class PaymentRequest:
 
         self.payment_url = self.details.payment_url
 
-        if self.has_expired():
-            self.error = "ERROR: Payment Request has Expired."
-            return False
-
         return True
 
     def has_expired(self):
         return self.details.expires and self.details.expires < int(time.time())
+
+    def get_expiration_date(self):
+        return self.details.expires
 
     def get_amount(self):
         return sum(map(lambda x:x[1], self.outputs))
@@ -272,16 +265,16 @@ class PaymentRequest:
     def get_domain(self):
         return self.domain
 
+    def get_memo(self):
+        return self.memo
+
     def get_id(self):
         return self.id
 
     def get_outputs(self):
-        return self.outputs
+        return self.outputs[:]
 
     def send_ack(self, raw_tx, refund_addr):
-
-        if self.has_expired():
-            return False, "has expired"
 
         pay_det = self.details
         if not self.details.payment_url:

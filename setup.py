@@ -56,7 +56,7 @@ data_files += [
 setup(
     name="Electrum-MYR",
     version=version.ELECTRUM_VERSION,
-    install_requires=['slowaes', 'ecdsa>=0.9', 'ltc_scrypt', 'groestl_hash', 'qubit_hash', 'skeinhash', 'requests', 'pbkdf2'],
+    install_requires=['slowaes', 'ecdsa>=0.9', 'ltc_scrypt', 'groestl_hash', 'qubit_hash', 'skeinhash', 'requests', 'pbkdf2', 'pyasn1', 'pyasn1-modules', 'tlslite>=0.4.5', 'qrcode'],
     package_dir={
         'electrum_myr': 'lib',
         'electrum_myr_gui': 'gui',
@@ -79,7 +79,6 @@ setup(
         'electrum_myr.paymentrequest',
         'electrum_myr.paymentrequest_pb2',
         'electrum_myr.plugins',
-        'electrum_myr.pyqrnative',
         'electrum_myr.scrypt',
         'electrum_myr.simple_config',
         'electrum_myr.socks',
@@ -90,6 +89,7 @@ setup(
         'electrum_myr.version',
         'electrum_myr.wallet',
         'electrum_myr.wallet_bitkey',
+        'electrum_myr.x509',
         'electrum_myr_gui.gtk',
         'electrum_myr_gui.qt.__init__',
         'electrum_myr_gui.qt.amountedit',
@@ -101,6 +101,7 @@ setup(
         'electrum_myr_gui.qt.main_window',
         'electrum_myr_gui.qt.network_dialog',
         'electrum_myr_gui.qt.password_dialog',
+        'electrum_myr_gui.qt.paytoedit',
         'electrum_myr_gui.qt.qrcodewidget',
         'electrum_myr_gui.qt.receiving_widget',
         'electrum_myr_gui.qt.seed_dialog',

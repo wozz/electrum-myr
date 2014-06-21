@@ -21,11 +21,19 @@ class WaitingDialog(QThread):
         self.d.show()
 
     def run(self):
-        self.result = self.run_task()
+        self.error = None
+        try:
+            self.result = self.run_task()
+        except Exception as e:
+            self.error = str(e)
         self.d.emit(SIGNAL('done'))
 
     def close(self):
         self.d.accept()
+        if self.error:
+            QMessageBox.warning(self.parent, _('Error'), self.error, _('OK'))
+            return
+
         if self.on_complete:
             self.on_complete(*self.result)
 
@@ -98,6 +106,7 @@ def ok_cancel_buttons(dialog, ok_label=_("OK") ):
     return hbox
 
 def text_dialog(parent, title, label, ok_label, default=None):
+    from qrtextedit import QRTextEdit
     dialog = QDialog(parent)
     dialog.setMinimumWidth(500)
     dialog.setWindowTitle(title)
@@ -105,7 +114,7 @@ def text_dialog(parent, title, label, ok_label, default=None):
     l = QVBoxLayout()
     dialog.setLayout(l)
     l.addWidget(QLabel(label))
-    txt = QTextEdit()
+    txt = QRTextEdit()
     if default:
         txt.setText(default)
     l.addWidget(txt)
