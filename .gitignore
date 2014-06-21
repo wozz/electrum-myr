@@ -2,6 +2,7 @@
 gui/icons_rc.py
 lib/icons_rc.py
 *.pyc
+*.pyo
 *.swp
 build/
 dist/
