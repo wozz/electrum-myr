@@ -35,6 +35,8 @@ class Plugin(BasePlugin):
         try:
             proc = zbar.Processor()
             proc.init(video_device=self.video_device())
+        except zbar.UnsupportedError:
+            return False
         except zbar.SystemError:
             # Cannot open video device
             pass
@@ -82,7 +84,15 @@ class Plugin(BasePlugin):
         qrcode = self.scan_qr()
         if not qrcode:
             return
-        tx = self.win.tx_from_text(qrcode)
+        data = qrcode
+
+        # transactions are binary, but qrcode seems to return utf8...
+        z = data.decode('utf8')
+        s = ''
+        for b in z:
+            s += chr(ord(b))
+        data = s.encode('hex')
+        tx = self.win.tx_from_text(data)
         if not tx:
             return
         self.win.show_transaction(tx)
@@ -129,7 +139,7 @@ class Plugin(BasePlugin):
                 if self.config.get("video_device") == "default":
                     self.video_device_edit.setText("")
                 else:
-                    self.video_device_edit.setText(self.config.get("video_device"))
+                    self.video_device_edit.setText(self.config.get("video_device",''))
             else:
                 custom_device_label.setVisible(False)
                 self.video_device_edit.setVisible(False)

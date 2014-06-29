@@ -3,7 +3,8 @@ from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 import os.path
 import time
-
+import traceback
+import sys
 import threading
 
 class WaitingDialog(QThread):
@@ -25,6 +26,7 @@ class WaitingDialog(QThread):
         try:
             self.result = self.run_task()
         except Exception as e:
+            traceback.print_exc(file=sys.stdout)
             self.error = str(e)
         self.d.emit(SIGNAL('done'))
 
@@ -35,7 +37,10 @@ class WaitingDialog(QThread):
             return
 
         if self.on_complete:
-            self.on_complete(*self.result)
+            if type(self.result) is tuple:
+                self.on_complete(*self.result)
+            else:
+                self.on_complete(self.result)
 
 
 

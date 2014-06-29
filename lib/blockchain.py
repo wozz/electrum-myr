@@ -319,7 +319,9 @@ class Blockchain(threading.Thread):
                 return h 
 
 
-    def get_target(self, height, chain=[], data=None):
+    def get_target(self, height, chain=None, data=None):
+        if chain is None:
+            chain = []  # Do not use mutables as default values!
 
         header_db_file = sqlite3.connect(self.db_path())
         header_db = header_db_file.cursor()

@@ -19,7 +19,7 @@ from electrum_myr.plugins import run_hook
 MSG_ENTER_ANYTHING    = _("Please enter a wallet seed, a master public key, a list of Myriadcoin addresses, or a list of private keys")
 MSG_SHOW_MPK          = _("This is your master public key")
 MSG_ENTER_MPK         = _("Please enter your master public key")
-MSG_ENTER_COLD_MPK    = _("Please enter the master public key of your cosigning wallet")
+MSG_ENTER_COLD_MPK    = _("Please enter the master public key of your cosigner wallet")
 MSG_ENTER_SEED_OR_MPK = _("Please enter a wallet seed, or master public key")
 MSG_VERIFY_SEED       = _("Your seed is important!") + "\n" + _("To make sure that you have properly saved your seed, please retype it here.")
 
@@ -176,11 +176,11 @@ class InstallWizard(QDialog):
 
     def is_any(self, seed_e):
         text = self.get_seed_text(seed_e)
-        return Wallet.is_seed(text) or Wallet.is_mpk(text) or Wallet.is_address(text) or Wallet.is_private_key(text)
+        return Wallet.is_seed(text) or Wallet.is_old_mpk(text) or Wallet.is_xpub(text) or Wallet.is_xprv(text) or Wallet.is_address(text) or Wallet.is_private_key(text)
 
     def is_mpk(self, seed_e):
         text = self.get_seed_text(seed_e)
-        return Wallet.is_mpk(text)
+        return Wallet.is_xpub(text) or Wallet.is_old_mpk(text)
 
 
     def enter_seed_dialog(self, msg, sid):
@@ -211,7 +211,7 @@ class InstallWizard(QDialog):
         hbox, button = ok_cancel_buttons2(self, _('Next'))
         vbox.addLayout(hbox)
         button.setEnabled(False)
-        f = lambda: button.setEnabled( map(lambda e: self.is_mpk(e), entries) == [True]*len(entries))
+        f = lambda: button.setEnabled( map(lambda e: self.is_xpub(e), entries) == [True]*len(entries))
         for e in entries:
             e.textChanged.connect(f)
         self.set_layout(vbox)
@@ -476,8 +476,13 @@ class InstallWizard(QDialog):
                     wallet = Wallet.from_seed(text, self.storage)
                     wallet.add_seed(text, password)
                     wallet.create_accounts(password)
-                elif Wallet.is_mpk(text):
-                    wallet = Wallet.from_mpk(text, self.storage)
+                elif Wallet.is_xprv(text):
+                    password = self.password_dialog()
+                    wallet = Wallet.from_xprv(text, password, self.storage)
+                elif Wallet.is_old_mpk(text):
+                    wallet = Wallet.from_old_mpk(text, self.storage)
+                elif Wallet.is_xpub(text):
+                    wallet = Wallet.from_xpub(text, self.storage)
                 elif Wallet.is_address(text):
                     wallet = Wallet.from_address(text, self.storage)
                 elif Wallet.is_private_key(text):

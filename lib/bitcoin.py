@@ -23,6 +23,8 @@ import re
 import sys
 import hmac
 
+from util import print_error
+from version import SEED_PREFIX
 
 try:
     import ecdsa
@@ -34,20 +36,16 @@ try:
 except ImportError:
     sys.exit("Error: AES does not seem to be installed. Try 'sudo pip install slowaes'")
 
-try:
-    import pbkdf2
-except ImportError:
-    sys.exit("Error: pbkdf2 does not seem to be installed. Try 'sudo pip install pbkdf2'")
+################################## transactions
 
-
-
-from util import print_error
-
+MIN_RELAY_TX_FEE = 100000
+DUST_SOFT_LIMIT = 100000
 
 
 # AES encryption
 EncodeAES = lambda secret, s: base64.b64encode(aes.encryptData(secret,s))
 DecodeAES = lambda secret, e: aes.decryptData(secret, base64.b64decode(e))
+
 
 def pw_encode(s, password):
     if password:
@@ -55,6 +53,7 @@ def pw_encode(s, password):
         return EncodeAES(secret, s.encode("utf8"))
     else:
         return s
+
 
 def pw_decode(s, password):
     if password is not None:
@@ -68,16 +67,15 @@ def pw_decode(s, password):
         return s
 
 
-
-
-
 def rev_hex(s):
     return s.decode('hex')[::-1].encode('hex')
+
 
 def int_to_hex(i, length=1):
     s = hex(i)[2:].rstrip('L')
     s = "0"*(2*length - len(s)) + s
     return rev_hex(s)
+
 
 def var_int(i):
     # https://en.bitcoin.it/wiki/Protocol_specification#Variable_length_integer
@@ -90,6 +88,7 @@ def var_int(i):
     else:
         return "ff"+int_to_hex(i,8)
 
+
 def op_push(i):
     if i<0x4c:
         return int_to_hex(i)
@@ -99,19 +98,21 @@ def op_push(i):
         return '4d' + int_to_hex(i,2)
     else:
         return '4e' + int_to_hex(i,4)
-    
 
 
 def sha256(x):
     return hashlib.sha256(x).digest()
 
+
 def Hash(x):
     if type(x) is unicode: x=x.encode('utf-8')
     return sha256(sha256(x))
 
+
 hash_encode = lambda x: x[::-1].encode('hex')
 hash_decode = lambda x: x.decode('hex')[::-1]
 hmac_sha_512 = lambda x,y: hmac.new(x, y, hashlib.sha512).digest()
+
 
 def mnemonic_to_seed(mnemonic, passphrase):
     from pbkdf2 import PBKDF2
@@ -119,7 +120,7 @@ def mnemonic_to_seed(mnemonic, passphrase):
     PBKDF2_ROUNDS = 2048
     return PBKDF2(mnemonic, 'mnemonic' + passphrase, iterations = PBKDF2_ROUNDS, macmodule = hmac, digestmodule = hashlib.sha512).read(64)
 
-from version import SEED_PREFIX
+
 is_new_seed = lambda x: hmac_sha_512("Seed version", x.encode('utf8')).encode('hex')[0:2].startswith(SEED_PREFIX)
 
 def is_old_seed(seed):
@@ -136,7 +137,7 @@ def is_old_seed(seed):
         is_hex = (len(seed) == 32)
     except Exception:
         is_hex = False
-         
+
     return is_hex or (uses_electrum_words and len(words) == 12)
 
 
@@ -164,9 +165,9 @@ def i2d_ECPrivateKey(pkey, compressed=False):
               '022100' + \
               '%064x' % _r + \
               '020101a144034200'
-        
+
     return key.decode('hex') + i2o_ECPublicKey(pkey.pubkey, compressed)
-    
+
 def i2o_ECPublicKey(pubkey, compressed=False):
     # public keys are 65 bytes long (520 bits)
     # 0x04 + 32-byte X-coordinate + 32-byte Y-coordinate
@@ -181,14 +182,14 @@ def i2o_ECPublicKey(pubkey, compressed=False):
         key = '04' + \
               '%064x' % pubkey.point.x() + \
               '%064x' % pubkey.point.y()
-            
+
     return key.decode('hex')
-            
+
 # end pywallet openssl private key implementation
 
-                                                
-            
-############ functions from pywallet ##################### 
+
+
+############ functions from pywallet #####################
 
 def hash_160(public_key):
     try:
@@ -219,6 +220,7 @@ def bc_address_to_hash_160(addr):
 __b58chars = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
 __b58base = len(__b58chars)
 
+
 def b58encode(v):
     """ encode v, which is a string of bytes, to base58."""
 
@@ -241,6 +243,7 @@ def b58encode(v):
         else: break
 
     return (__b58chars[0]*nPad) + result
+
 
 def b58decode(v, length):
     """ decode v into a string of len bytes."""
@@ -271,6 +274,7 @@ def EncodeBase58Check(vchIn):
     hash = Hash(vchIn)
     return b58encode(vchIn + hash[0:4])
 
+
 def DecodeBase58Check(psz):
     vchRet = b58decode(psz, None)
     key = vchRet[0:-4]
@@ -282,8 +286,10 @@ def DecodeBase58Check(psz):
     else:
         return key
 
+
 def PrivKeyToSecret(privkey):
     return privkey[9:9+32]
+
 
 def SecretToASecret(secret, compressed=False, addrtype=50):
     vchIn = chr((addrtype+128)&255) + secret
@@ -304,14 +310,18 @@ def regenerate_key(sec):
     b = b[0:32]
     return EC_KEY(b)
 
+
 def GetPubKey(pubkey, compressed=False):
     return i2o_ECPublicKey(pubkey, compressed)
+
 
 def GetPrivKey(pkey, compressed=False):
     return i2d_ECPrivateKey(pkey, compressed)
 
+
 def GetSecret(pkey):
     return ('%064x' % pkey.secret).decode('hex')
+
 
 def is_compressed(sec):
     b = ASecretToSecret(sec)
@@ -349,7 +359,7 @@ def is_address(addr):
 
 def is_private_key(key):
     try:
-        k = ASecretToSecret(key) 
+        k = ASecretToSecret(key)
         return k is not False
     except:
         return False
@@ -513,19 +523,19 @@ class EC_KEY(object):
 
     @classmethod
     def encrypt_message(self, message, pubkey):
-        
+
         pk = ser_to_point(pubkey)
         if not ecdsa.ecdsa.point_is_valid(generator_secp256k1, pk.x(), pk.y()):
             raise Exception('invalid pubkey')
-        
+
         ephemeral_exponent = number_to_string(ecdsa.util.randrange(pow(2,256)), generator_secp256k1.order())
         ephemeral = EC_KEY(ephemeral_exponent)
-        
+
         ecdh_key = (pk * ephemeral.privkey.secret_multiplier).x()
         ecdh_key = ('%064x' % ecdh_key).decode('hex')
         key = hashlib.sha512(ecdh_key).digest()
         key_e, key_m = key[:32], key[32:]
-        
+
         iv_ciphertext = aes.encryptData(key_e, message)
 
         ephemeral_pubkey = ephemeral.get_public_key(compressed=True).decode('hex')
@@ -536,20 +546,20 @@ class EC_KEY(object):
 
 
     def decrypt_message(self, encrypted):
-        
+
         encrypted = base64.b64decode(encrypted)
-        
+
         if len(encrypted) < 85:
             raise Exception('invalid ciphertext: length')
-        
+
         magic = encrypted[:4]
         ephemeral_pubkey = encrypted[4:37]
         iv_ciphertext = encrypted[37:-32]
         mac = encrypted[-32:]
-        
+
         if magic != 'BIE1':
             raise Exception('invalid ciphertext: invalid magic bytes')
-        
+
         try:
             ephemeral_pubkey = ser_to_point(ephemeral_pubkey)
         except AssertionError, e:
@@ -608,10 +618,10 @@ def _CKD_priv(k, c, s, is_prime):
     return k_n, c_n
 
 # Child public key derivation function (from public key only)
-# K = master public key 
+# K = master public key
 # c = master chain code
 # n = index of key we want to derive
-# This function allows us to find the nth public key, as long as n is 
+# This function allows us to find the nth public key, as long as n is
 #  non-negative. If n is negative, we need the master private key to find it.
 def CKD_pub(cK, c, n):
     if n & BIP32_PRIME: raise
@@ -631,37 +641,87 @@ def _CKD_pub(cK, c, s):
     return cK_n, c_n
 
 
+BITCOIN_HEADER_PRIV = "0488ade4"
+BITCOIN_HEADER_PUB = "0488b21e"
+
+TESTNET_HEADER_PRIV = "04358394"
+TESTNET_HEADER_PUB = "043587cf"
+
+BITCOIN_HEADERS = (BITCOIN_HEADER_PUB, BITCOIN_HEADER_PRIV)
+TESTNET_HEADERS = (TESTNET_HEADER_PUB, TESTNET_HEADER_PRIV)
+
+def _get_headers(testnet):
+    """Returns the correct headers for either testnet or bitcoin, in the form
+    of a 2-tuple, like (public, private)."""
+    if testnet:
+        return TESTNET_HEADERS
+    else:
+        return BITCOIN_HEADERS
+
 
 def deserialize_xkey(xkey):
-    xkey = DecodeBase58Check(xkey) 
+
+    xkey = DecodeBase58Check(xkey)
     assert len(xkey) == 78
-    assert xkey[0:4].encode('hex') in ["0488ade4", "0488b21e"]
+
+    xkey_header = xkey[0:4].encode('hex')
+    # Determine if the key is a bitcoin key or a testnet key.
+    if xkey_header in TESTNET_HEADERS:
+        head = TESTNET_HEADER_PRIV
+    elif xkey_header in BITCOIN_HEADERS:
+        head = BITCOIN_HEADER_PRIV
+    else:
+        raise Exception("Unknown xkey header: '%s'" % xkey_header)
+
     depth = ord(xkey[4])
     fingerprint = xkey[5:9]
     child_number = xkey[9:13]
     c = xkey[13:13+32]
-    if xkey[0:4].encode('hex') == "0488ade4":
+    if xkey[0:4].encode('hex') == head:
         K_or_k = xkey[13+33:]
     else:
         K_or_k = xkey[13+32:]
     return depth, fingerprint, child_number, c, K_or_k
 
 
+def get_xkey_name(xkey, testnet=False):
+    depth, fingerprint, child_number, c, K = deserialize_xkey(xkey)
+    n = int(child_number.encode('hex'), 16)
+    if n & BIP32_PRIME:
+        child_id = "%d'"%(n - BIP32_PRIME)
+    else:
+        child_id = "%d"%n
+    if depth == 0:
+        return ''
+    elif depth == 1:
+        return child_id
+    else:
+        raise BaseException("xpub depth error")
 
-def bip32_root(seed):
+
+def xpub_from_xprv(xprv, testnet=False):
+    depth, fingerprint, child_number, c, k = deserialize_xkey(xprv)
+    K, cK = get_pubkeys_from_secret(k)
+    header_pub, _  = _get_headers(testnet)
+    xpub = header_pub.decode('hex') + chr(depth) + fingerprint + child_number + c + cK
+    return EncodeBase58Check(xpub)
+
+
+def bip32_root(seed, testnet=False):
     import hmac
-    seed = seed.decode('hex')        
-    I = hmac.new("Myriadcoin seed", seed, hashlib.sha512).digest()
+    header_pub, header_priv = _get_headers(testnet)
+    seed = seed.decode('hex')
+    I = hmac.new("Bitcoin seed", seed, hashlib.sha512).digest()
     master_k = I[0:32]
     master_c = I[32:]
     K, cK = get_pubkeys_from_secret(master_k)
-    xprv = ("0488ADE4" + "00" + "00000000" + "00000000").decode("hex") + master_c + chr(0) + master_k
-    xpub = ("0488B21E" + "00" + "00000000" + "00000000").decode("hex") + master_c + cK
+    xprv = (header_priv + "00" + "00000000" + "00000000").decode("hex") + master_c + chr(0) + master_k
+    xpub = (header_pub + "00" + "00000000" + "00000000").decode("hex") + master_c + cK
     return EncodeBase58Check(xprv), EncodeBase58Check(xpub)
 
 
-
-def bip32_private_derivation(xprv, branch, sequence):
+def bip32_private_derivation(xprv, branch, sequence, testnet=False):
+    header_pub, header_priv = _get_headers(testnet)
     depth, fingerprint, child_number, c, k = deserialize_xkey(xprv)
     assert sequence.startswith(branch)
     sequence = sequence[len(branch):]
@@ -676,13 +736,13 @@ def bip32_private_derivation(xprv, branch, sequence):
     fingerprint = hash_160(parent_cK)[0:4]
     child_number = ("%08X"%i).decode('hex')
     K, cK = get_pubkeys_from_secret(k)
-    xprv = "0488ADE4".decode('hex') + chr(depth) + fingerprint + child_number + c + chr(0) + k
-    xpub = "0488B21E".decode('hex') + chr(depth) + fingerprint + child_number + c + cK
+    xprv = header_priv.decode('hex') + chr(depth) + fingerprint + child_number + c + chr(0) + k
+    xpub = header_pub.decode('hex') + chr(depth) + fingerprint + child_number + c + cK
     return EncodeBase58Check(xprv), EncodeBase58Check(xpub)
 
 
-
-def bip32_public_derivation(xpub, branch, sequence):
+def bip32_public_derivation(xpub, branch, sequence, testnet=False):
+    header_pub, _ = _get_headers(testnet)
     depth, fingerprint, child_number, c, cK = deserialize_xkey(xpub)
     assert sequence.startswith(branch)
     sequence = sequence[len(branch):]
@@ -695,101 +755,11 @@ def bip32_public_derivation(xpub, branch, sequence):
 
     fingerprint = hash_160(parent_cK)[0:4]
     child_number = ("%08X"%i).decode('hex')
-    xpub = "0488B21E".decode('hex') + chr(depth) + fingerprint + child_number + c + cK
+    xpub = header_pub.decode('hex') + chr(depth) + fingerprint + child_number + c + cK
     return EncodeBase58Check(xpub)
-
-
 
 
 def bip32_private_key(sequence, k, chain):
     for i in sequence:
         k, chain = CKD_priv(k, chain, i)
     return SecretToASecret(k, True)
-
-
-
-
-################################## transactions
-
-MIN_RELAY_TX_FEE = 100000
-DUST_SOFT_LIMIT = 100000
-
-
-
-import unittest
-class Test_bitcoin(unittest.TestCase):
-
-    def test_crypto(self):
-        for message in ["Chancellor on brink of second bailout for banks", chr(255)*512]:
-            self.do_test_crypto(message)
-
-    def do_test_crypto(self, message):
-        G = generator_secp256k1
-        _r  = G.order()
-        pvk = ecdsa.util.randrange( pow(2,256) ) %_r
-
-        Pub = pvk*G
-        pubkey_c = point_to_ser(Pub,True)
-        pubkey_u = point_to_ser(Pub,False)
-        addr_c = public_key_to_bc_address(pubkey_c)
-        addr_u = public_key_to_bc_address(pubkey_u)
-
-        #print "Private key            ", '%064x'%pvk
-        eck = EC_KEY(number_to_string(pvk,_r))
-
-        #print "Compressed public key  ", pubkey_c.encode('hex')
-        enc = EC_KEY.encrypt_message(message, pubkey_c)
-        dec = eck.decrypt_message(enc)
-        assert dec == message
-
-        #print "Uncompressed public key", pubkey_u.encode('hex')
-        enc2 = EC_KEY.encrypt_message(message, pubkey_u)
-        dec2 = eck.decrypt_message(enc)
-        assert dec2 == message
-
-        signature = eck.sign_message(message, True, addr_c)
-        #print signature
-        EC_KEY.verify_message(addr_c, signature, message)
-
-
-
-    def test_bip32(self):
-        # see https://en.bitcoin.it/wiki/BIP_0032_TestVectors
-        xpub, xprv = self.do_test_bip32("000102030405060708090a0b0c0d0e0f", "m/0'/1/2'/2/1000000000")
-        assert xpub == "xpub6H1LXWLaKsWFhvm6RVpEL9P4KfRZSW7abD2ttkWP3SSQvnyA8FSVqNTEcYFgJS2UaFcxupHiYkro49S8yGasTvXEYBVPamhGW6cFJodrTHy"
-        assert xprv == "xprvA41z7zogVVwxVSgdKUHDy1SKmdb533PjDz7J6N6mV6uS3ze1ai8FHa8kmHScGpWmj4WggLyQjgPie1rFSruoUihUZREPSL39UNdE3BBDu76"
-
-        xpub, xprv = self.do_test_bip32("fffcf9f6f3f0edeae7e4e1dedbd8d5d2cfccc9c6c3c0bdbab7b4b1aeaba8a5a29f9c999693908d8a8784817e7b7875726f6c696663605d5a5754514e4b484542","m/0/2147483647'/1/2147483646'/2")
-        assert xpub == "xpub6FnCn6nSzZAw5Tw7cgR9bi15UV96gLZhjDstkXXxvCLsUXBGXPdSnLFbdpq8p9HmGsApME5hQTZ3emM2rnY5agb9rXpVGyy3bdW6EEgAtqt"
-        assert xprv == "xprvA2nrNbFZABcdryreWet9Ea4LvTJcGsqrMzxHx98MMrotbir7yrKCEXw7nadnHM8Dq38EGfSh6dqA9QWTyefMLEcBYJUuekgW4BYPJcr9E7j"
-
-
-    def do_test_bip32(self, seed, sequence):
-        xprv, xpub = bip32_root(seed)
-        assert sequence[0:2] == "m/"
-        path = 'm'
-        sequence = sequence[2:]
-        for n in sequence.split('/'):
-            child_path = path + '/' + n
-            if n[-1] != "'":
-                xpub2 = bip32_public_derivation(xpub, path, child_path)
-            xprv, xpub = bip32_private_derivation(xprv, path, child_path)
-            if n[-1] != "'":
-                assert xpub == xpub2
-            path = child_path
-
-        return xpub, xprv
-
-
-    def test_aes(self):
-        s = u'\u66f4\u7a33\u5b9a\u7684\u4ea4\u6613\u5e73\u53f0'
-        self.do_test_aes(s, s)
-
-    def do_test_aes(self, s, p):
-        enc = pw_encode(s, p)
-        dec = pw_decode(enc, p)
-        assert dec == s
-
-
-if __name__ == "__main__":
-    unittest.main()
