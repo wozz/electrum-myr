@@ -444,9 +444,14 @@ class ElectrumWindow(QMainWindow):
 
 
     def base_unit(self):
-        assert self.decimal_point in [5,8]
-        return "MYR" if self.decimal_point == 8 else "mMYR"
-
+        assert self.decimal_point in [2, 5, 8]
+        if self.decimal_point == 2:
+            return 'uMYR'
+        if self.decimal_point == 5:
+            return 'mMYR'
+        if self.decimal_point == 8:
+            return 'MYR'
+        raise Exception('Unknown base unit')
 
     def update_status(self):
         if self.network is None or not self.network.is_running():
@@ -1052,6 +1057,8 @@ class ElectrumWindow(QMainWindow):
 
         # sign the tx
         def sign_thread():
+            if self.wallet.is_watching_only():
+                return tx
             keypairs = {}
             try:
                 self.wallet.add_keypairs(tx, keypairs, password)
@@ -2489,7 +2496,7 @@ class ElectrumWindow(QMainWindow):
         if not self.config.is_modifiable('fee_per_kb'):
             for w in [fee_e, fee_label]: w.setEnabled(False)
 
-        units = ['MYR', 'mMYR']
+        units = ['MYR', 'mMYR', 'uMYR']
         unit_label = QLabel(_('Base unit') + ':')
         grid.addWidget(unit_label, 3, 0)
         unit_combo = QComboBox()
@@ -2560,7 +2567,14 @@ class ElectrumWindow(QMainWindow):
 
         unit_result = units[unit_combo.currentIndex()]
         if self.base_unit() != unit_result:
-            self.decimal_point = 8 if unit_result == 'MYR' else 5
+            if unit_result == 'MYR':
+                self.decimal_point = 8
+            elif unit_result == 'mMYR':
+                self.decimal_point = 5
+            elif unit_result == 'uMYR':
+                self.decimal_point = 2
+            else:
+                raise Exception('Unknown base unit')
             self.config.set_key('decimal_point', self.decimal_point, True)
             self.update_history_tab()
             self.update_status()
