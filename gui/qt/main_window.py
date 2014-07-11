@@ -748,7 +748,7 @@ class ElectrumWindow(QMainWindow):
     def new_receive_address(self):
         domain = self.wallet.get_account_addresses(self.current_account, include_change=False)
         for addr in domain:
-            if not self.wallet.address_is_old(addr) and addr not in self.receive_requests.keys():
+            if not self.wallet.history.get(addr) and addr not in self.receive_requests.keys():
                 break
         else:
             if isinstance(self.wallet, Imported_Wallet):
@@ -765,7 +765,7 @@ class ElectrumWindow(QMainWindow):
         self.receive_requests = self.wallet.storage.get('receive_requests',{}) 
         domain = self.wallet.get_account_addresses(self.current_account, include_change=False)
         for addr in domain:
-            if not self.wallet.address_is_old(addr) and addr not in self.receive_requests.keys():
+            if not self.wallet.history.get(addr) and addr not in self.receive_requests.keys():
                 break
         else:
             addr = ''
@@ -995,20 +995,20 @@ class ElectrumWindow(QMainWindow):
             QMessageBox.warning(self, _('Error'), _('No outputs'), _('OK'))
             return
 
-        for addr, x in outputs:
+        for type, addr, amount in outputs:
             if addr is None:
                 QMessageBox.warning(self, _('Error'), _('Myriadcoin Address is None'), _('OK'))
                 return
-            if addr.startswith('OP_RETURN:'):
+            if type == 'op_return':
                 continue
-            if not bitcoin.is_address(addr):
+            if type == 'address' and not bitcoin.is_address(addr):
                 QMessageBox.warning(self, _('Error'), _('Invalid Myriadcoin Address'), _('OK'))
                 return
-            if x is None:
+            if amount is None:
                 QMessageBox.warning(self, _('Error'), _('Invalid Amount'), _('OK'))
                 return
 
-        amount = sum(map(lambda x:x[1], outputs))
+        amount = sum(map(lambda x:x[2], outputs))
 
         fee = self.fee_e.get_amount()
         if fee is None:
@@ -1017,7 +1017,7 @@ class ElectrumWindow(QMainWindow):
 
         confirm_amount = self.config.get('confirm_amount', 100000000)
         if amount >= confirm_amount:
-            o = '\n'.join(map(lambda x:x[0], outputs))
+            o = '\n'.join(map(lambda x:x[1], outputs))
             if not self.question(_("send %(amount)s to %(address)s?")%{ 'amount' : self.format_amount(amount) + ' '+ self.base_unit(), 'address' : o}):
                 return
             
@@ -1064,6 +1064,7 @@ class ElectrumWindow(QMainWindow):
                 self.wallet.add_keypairs(tx, keypairs, password)
                 self.wallet.sign_transaction(tx, keypairs, password)
             except Exception as e:
+                traceback.print_exc(file=sys.stdout)
                 tx.error = str(e)
             return tx
 
@@ -2139,12 +2140,12 @@ class ElectrumWindow(QMainWindow):
         try:
             for position, row in enumerate(csvReader):
                 address = row[0]
-                if not is_valid(address):
+                if not is_address(address):
                     errors.append((position, address))
                     continue
                 amount = Decimal(row[1])
                 amount = int(100000000*amount)
-                outputs.append((address, amount))
+                outputs.append(('address', address, amount))
         except (ValueError, IOError, os.error), reason:
             QMessageBox.critical(None, _("Unable to read file or no transaction found"), _("Electrum was unable to open your transaction file") + "\n" + str(reason))
             return
