@@ -38,11 +38,11 @@ class Exchanger(threading.Thread):
 
     def get_json(self, site, get_string, http=False):
         try:
-            if not http:
-                connection = httplib.HTTPSConnection(site)
-            else:
+            if http:
                 connection = httplib.HTTPConnection(site)
-            connection.request("GET", get_string)
+            else:
+                connection = httplib.HTTPSConnection(site)
+            connection.request("GET", get_string, headers={"User-Agent":"Electrum"})
         except Exception:
             raise
         resp = connection.getresponse()
