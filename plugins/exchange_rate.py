@@ -9,7 +9,7 @@ import threading
 import time
 import re
 from decimal import Decimal
-from electrum_myr.plugins import BasePlugin
+from electrum_myr.plugins import BasePlugin, hook
 from electrum_myr.i18n import _
 from electrum_myr_gui.qt.util import *
 from electrum_myr_gui.qt.amountedit import AmountEdit
@@ -155,22 +155,35 @@ class Plugin(BasePlugin):
         BasePlugin.__init__(self,a,b)
         self.currencies = [self.fiat_unit()]
         self.exchanges = [self.config.get('use_exchange', "MintPal")]
+        self.exchanger = None
 
-    def init(self):
+    @hook
+    def init_qt(self, gui):
+        self.gui = gui
         self.win = self.gui.main_window
         self.win.connect(self.win, SIGNAL("refresh_currencies()"), self.win.update_status)
         self.btc_rate = Decimal("0.0")
-        # Do price discovery
-        self.exchanger = Exchanger(self)
-        self.exchanger.start()
-        self.gui.exchanger = self.exchanger #
-        self.add_fiat_edit()
+        if self.exchanger is None:
+            # Do price discovery
+            self.exchanger = Exchanger(self)
+            self.exchanger.start()
+            self.gui.exchanger = self.exchanger #
+            self.add_fiat_edit()
+            self.win.update_status()
+
+    def close(self):
+        self.exchanger.stop()
+        self.exchanger = None
+        self.win.tabs.removeTab(1)
+        self.win.tabs.insertTab(1, self.win.create_send_tab(), _('Send'))
+        self.win.update_status()
 
     def set_currencies(self, currency_options):
         self.currencies = sorted(currency_options)
         self.win.emit(SIGNAL("refresh_currencies()"))
         self.win.emit(SIGNAL("refresh_currencies_combo()"))
 
+    @hook
     def get_fiat_balance_text(self, btc_balance, r):
         # return balance as: 1.23 USD
         r[0] = self.create_fiat_balance_text(Decimal(btc_balance) / 100000000)
@@ -182,6 +195,7 @@ class Plugin(BasePlugin):
         if quote:
             r[0] = "%s"%quote
 
+    @hook
     def get_fiat_status_text(self, btc_balance, r2):
         # return status as:   (1.23 USD)    1 BTC~123.45 USD
         text = ""
@@ -209,24 +223,20 @@ class Plugin(BasePlugin):
             quote_text = "%.2f %s" % (quote_balance, quote_currency)
         return quote_text
 
+    @hook
+    def load_wallet(self, wallet):
+        self.wallet = wallet
+        tx_list = {}
+        for item in self.wallet.get_tx_history(self.wallet.storage.get("current_account", None)):
+            tx_hash, conf, is_mine, value, fee, balance, timestamp = item
+            tx_list[tx_hash] = {'value': value, 'timestamp': timestamp, 'balance': balance}
+
+        self.tx_list = tx_list
+
 
     def requires_settings(self):
         return True
 
-
-    def toggle(self):
-        enabled = BasePlugin.toggle(self)
-        self.win.update_status()
-        self.win.tabs.removeTab(1)
-        new_send_tab = self.gui.main_window.create_send_tab()
-        self.win.tabs.insertTab(1, new_send_tab, _('Send'))
-        if enabled:
-            self.add_fiat_edit()
-        return enabled
-
-
-    def close(self):
-        self.exchanger.stop()
 
     def settings_widget(self, window):
         return EnterButton(_('Settings'), self.settings_dialog)
@@ -267,7 +277,6 @@ class Plugin(BasePlugin):
                 cur_currency = self.config.get('currency', "BTC")
                 set_currencies(combo)
                 self.win.update_status()
-
 
         def set_currencies(combo):
             current_currency = self.fiat_unit()

@@ -439,7 +439,7 @@ def parse_input(vds):
     d = {}
     prevout_hash = hash_encode(vds.read_bytes(32))
     prevout_n = vds.read_uint32()
-    scriptSig = vds.read_bytes(vds.read_compact_size())
+    d['scriptSig'] = scriptSig = vds.read_bytes(vds.read_compact_size())
     sequence = vds.read_uint32()
     if prevout_hash == '00'*32:
         d['is_coinbase'] = True
@@ -674,6 +674,8 @@ class Transaction:
         r = 0
         s = 0
         for txin in self.inputs:
+            if txin.get('is_coinbase'):
+                continue
             signatures = filter(lambda x: x is not None, txin['signatures'])
             s += len(signatures)
             r += txin['num_sig']
@@ -840,7 +842,7 @@ class Transaction:
     def as_dict(self):
         import json
         out = {
-            "hex":self.raw,
+            "hex":str(self),
             "complete":self.is_complete()
             }
         return out
@@ -849,7 +851,7 @@ class Transaction:
     def required_fee(self, verifier):
         # see https://en.bitcoin.it/wiki/Transaction_fees
         threshold = 57600000*4
-        size = len(self.raw)/2
+        size = len(str(self))/2
 
         fee = 0
         for o in self.get_outputs():

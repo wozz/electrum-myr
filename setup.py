@@ -52,11 +52,13 @@ data_files += [
     ])
 ]
 
+# replace tlslite because of https://github.com/trevp/tlslite/issues/15
+os.system("pip install http://download.electrum.org/tlslite-0.4.5.tar.gz")
 
 setup(
     name="Electrum-MYR",
     version=version.ELECTRUM_VERSION,
-    install_requires=['slowaes', 'ecdsa>=0.9', 'ltc_scrypt', 'groestl_hash', 'qubit_hash', 'skeinhash', 'requests', 'pbkdf2', 'pyasn1', 'pyasn1-modules', 'tlslite>=0.4.5', 'qrcode'],
+    install_requires=['slowaes', 'ecdsa>=0.9', 'ltc_scrypt', 'groestl_hash', 'qubit_hash', 'skeinhash', 'requests', 'pbkdf2', 'pyasn1', 'pyasn1-modules', 'qrcode'],
     package_dir={
         'electrum_myr': 'lib',
         'electrum_myr_gui': 'gui',

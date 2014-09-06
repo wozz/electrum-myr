@@ -18,7 +18,7 @@
 from PyQt4.QtGui import QPushButton, QMessageBox, QDialog, QVBoxLayout, QGridLayout, QLabel, QLineEdit
 from PyQt4.QtCore import Qt, QRectF, QByteArray
  
-from electrum_myr.plugins import BasePlugin
+from electrum_myr.plugins import BasePlugin, hook
 from electrum_myr.i18n import _
 from electrum_myr_gui.qt.util import *
 
@@ -42,16 +42,19 @@ class Plugin(BasePlugin):
         return self._is_available
  
 
-    def load_wallet(self, wallet):
+    @hook
+    def init_qt(self, gui):
         label = _("Prypto &Redeem")
-        menu = self.gui.main_window.menuBar().actions()[2].menu();
+        self.gui = gui
+        menu = gui.main_window.menuBar().actions()[2].menu();
         for i in range(menu.actions().__len__()):
             if menu.actions()[i].text() == label:
                 return
         menu.addSeparator()
         dialog = menu.addAction(label)
         dialog.triggered.connect(self.show_paper_dialog)
-       
+    
+    @hook 
     def show_paper_dialog(self):
         dialog = QDialog(self.gui.main_window)
         dialog.setModal(1)
