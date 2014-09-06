@@ -185,13 +185,13 @@ class TrezorWallet(NewWallet):
 
     def address_id(self, address):
         account_id, (change, address_index) = self.get_address_index(address)
-        return "44'/2'/%s'/%d/%d" % (account_id, change, address_index)
+        return "44'/50'/%s'/%d/%d" % (account_id, change, address_index)
 
     def create_main_account(self, password):
         self.create_account('Main account', None) #name, empty password
 
     def derive_xkeys(self, root, derivation, password):
-        derivation = derivation.replace(self.root_name,"44'/2'/")
+        derivation = derivation.replace(self.root_name,"44'/50'/")
         xpub = self.get_public_key(derivation)
         return xpub, None
 
@@ -203,7 +203,7 @@ class TrezorWallet(NewWallet):
 
     def get_master_public_key(self):
         if not self.mpk:
-            self.mpk = self.get_public_key("44'/2'")
+            self.mpk = self.get_public_key("44'/50'")
         return self.mpk
 
     def i4b(self, x):
@@ -235,7 +235,7 @@ class TrezorWallet(NewWallet):
         except Exception, e:
             give_error(e)
         try:
-            msg_sig = self.get_client().sign_message('Litecoin', address_n, message)
+            msg_sig = self.get_client().sign_message('Myriadcoin', address_n, message)
         except Exception, e:
             give_error(e)
         finally:
@@ -253,7 +253,7 @@ class TrezorWallet(NewWallet):
         inputs = self.tx_inputs(tx)
         outputs = self.tx_outputs(tx)
         try:
-            signed_tx = self.get_client().sign_tx('Litecoin', inputs, outputs)[1]
+            signed_tx = self.get_client().sign_tx('Myriadcoin', inputs, outputs)[1]
         except Exception, e:
             give_error(e)
         finally:
@@ -348,7 +348,7 @@ class TrezorWallet(NewWallet):
             address = self.addresses(False, False)[0]
             address_id = self.address_id(address)
             n = self.get_client().expand_path(address_id)
-            device_address = self.get_client().get_address('Litecoin', n)
+            device_address = self.get_client().get_address('Myriadcoin', n)
             self.device_checked = True
 
             if device_address != address:
