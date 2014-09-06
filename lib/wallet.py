@@ -1426,7 +1426,7 @@ class BIP32_HD_Wallet(BIP32_Wallet):
 class NewWallet(BIP32_HD_Wallet, Mnemonic):
     # bip 44
     root_name = 'x/'
-    root_derivation = "m/44'/2'"
+    root_derivation = "m/44'/50'"
     wallet_type = 'standard'
 
 
@@ -1434,7 +1434,7 @@ class Wallet_2of2(BIP32_Wallet, Mnemonic):
     # Wallet with multisig addresses. 
     # Cannot create accounts
     root_name = "x1/"
-    root_derivation = "m/44'/2'"
+    root_derivation = "m/44'/50'"
     wallet_type = '2of2'
 
     def can_import(self):
