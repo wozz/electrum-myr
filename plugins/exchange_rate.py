@@ -19,6 +19,12 @@ EXCHANGES = ["Cryptsy",
              "MintPal",
              "Prelude"]
 
+EXCH_SUPPORT_HIST = [("BitcoinVenezuela", "ARS"),
+                     ("BitcoinVenezuela", "EUR"),
+                     ("BitcoinVenezuela", "USD"),
+                     ("BitcoinVenezuela", "VEF"),
+                     ("Kraken", "EUR"),
+                     ("Kraken", "USD")]
 
 class Exchanger(threading.Thread):
 
@@ -31,7 +37,6 @@ class Exchanger(threading.Thread):
         self.query_rates = threading.Event()
         self.use_exchange = self.parent.config.get('use_exchange', "MintPal")
         self.parent.exchanges = EXCHANGES
-        self.parent.currencies = ["BTC"]
         self.parent.win.emit(SIGNAL("refresh_exchanges_combo()"))
         self.parent.win.emit(SIGNAL("refresh_currencies_combo()"))
         self.is_running = False
@@ -138,8 +143,6 @@ class Exchanger(threading.Thread):
         self.parent.set_currencies(quote_currencies)
 
 
-    def get_currencies(self):
-        return [] if self.quote_currencies == None else sorted(self.quote_currencies.keys())
 
 
 class Plugin(BasePlugin):
@@ -274,13 +277,14 @@ class Plugin(BasePlugin):
                 self.currencies = []
                 combo.clear()
                 self.exchanger.query_rates.set()
-                cur_currency = self.config.get('currency', "BTC")
+                cur_currency = self.fiat_unit()
                 set_currencies(combo)
                 self.win.update_status()
 
         def set_currencies(combo):
-            current_currency = self.fiat_unit()
             try:
+                combo.blockSignals(True)
+                current_currency = self.fiat_unit()
                 combo.clear()
             except Exception:
                 return
@@ -289,6 +293,9 @@ class Plugin(BasePlugin):
                 index = self.currencies.index(current_currency)
             except Exception:
                 index = 0
+                if len(self.currencies):
+                    on_change(0)
+            combo.blockSignals(False)
             combo.setCurrentIndex(index)
 
         def set_exchanges(combo_ex):
@@ -304,6 +311,8 @@ class Plugin(BasePlugin):
             combo_ex.setCurrentIndex(index)
 
         def ok_clicked():
+            if self.config.get('use_exchange', "BTC-e") in ["CoinDesk", "itBit"]:
+                self.exchanger.query_rates.set()
             d.accept();
 
         set_exchanges(combo_ex)
