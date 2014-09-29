@@ -166,6 +166,8 @@ class Plugin(BasePlugin):
         self.win = self.gui.main_window
         self.win.connect(self.win, SIGNAL("refresh_currencies()"), self.win.update_status)
         self.btc_rate = Decimal("0.0")
+        self.resp_hist = {}
+        self.tx_list = {}
         if self.exchanger is None:
             # Do price discovery
             self.exchanger = Exchanger(self)
@@ -227,6 +229,10 @@ class Plugin(BasePlugin):
         return quote_text
 
     @hook
+    def request_history_rates(self):
+        return
+
+    @hook
     def load_wallet(self, wallet):
         self.wallet = wallet
         tx_list = {}
@@ -235,6 +241,8 @@ class Plugin(BasePlugin):
             tx_list[tx_hash] = {'value': value, 'timestamp': timestamp, 'balance': balance}
 
         self.tx_list = tx_list
+        self.cur_exchange = self.config.get('use_exchange', "BTC-e")
+        threading.Thread(target=self.request_history_rates, args=()).start()
 
 
     def requires_settings(self):

@@ -79,9 +79,31 @@ class Plugin(BasePlugin):
     def enable(self):
         return BasePlugin.enable(self)
 
+    def trezor_is_connected(self):
+        try:
+            self.wallet.get_client().ping('t')
+        except:
+            return False
+        return True
+
+    @hook
+    def init_qt(self, gui):
+        self.window = gui.main_window
+
+    @hook
+    def close_wallet(self):
+        print_error("trezor: clear session")
+        if self.wallet.client:
+            self.wallet.client.clear_session()
+
     @hook
     def load_wallet(self, wallet):
         self.wallet = wallet
+        if self.trezor_is_connected():
+            if not self.wallet.check_proper_device():
+                QMessageBox.information(self.window, _('Error'), _("This wallet does not match your Trezor device"), _('OK'))
+        else:
+            QMessageBox.information(self.window, _('Error'), _("Trezor device not detected.\nContinuing in watching-only mode."), _('OK'))
 
     @hook
     def installwizard_restore(self, wizard, storage):
@@ -426,6 +448,7 @@ class TrezorQtGuiMixin(object):
         d = QDialog(None)
         d.setModal(1)
         d.setWindowTitle(_("Enter PIN"))
+        d.setWindowFlags(d.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
         matrix = PinMatrixWidget()
 
         vbox = QVBoxLayout()

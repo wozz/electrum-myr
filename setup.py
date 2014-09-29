@@ -32,6 +32,7 @@ if (len(sys.argv) > 1 and (sys.argv[1] == "sdist")) or (platform.system() != 'Wi
         if os.path.exists('locale/%s/LC_MESSAGES/electrum.mo' % lang):
             data_files.append((os.path.join(usr_share, 'locale/%s/LC_MESSAGES' % lang), ['locale/%s/LC_MESSAGES/electrum.mo' % lang]))
 
+
 appdata_dir = util.appdata_dir()
 if not os.access(appdata_dir, os.W_OK):
     appdata_dir = os.path.join(usr_share, "electrum-myr")
@@ -52,13 +53,28 @@ data_files += [
     ])
 ]
 
-# replace tlslite because of https://github.com/trevp/tlslite/issues/15
-os.system("pip install http://download.electrum.org/tlslite-0.4.5.tar.gz")
+for lang in os.listdir('data/wordlist'):
+    data_files.append((os.path.join(appdata_dir, 'wordlist'), ['data/wordlist/%s' % lang]))
+
 
 setup(
     name="Electrum-MYR",
     version=version.ELECTRUM_VERSION,
-    install_requires=['slowaes', 'ecdsa>=0.9', 'ltc_scrypt', 'groestl_hash', 'qubit_hash', 'skeinhash', 'requests', 'pbkdf2', 'pyasn1', 'pyasn1-modules', 'qrcode'],
+    install_requires=[
+        'slowaes',
+        'ecdsa>=0.9',
+        'ltc_scrypt',
+        'groestl_hash',
+        'qubit_hash',
+        'skeinhash',
+        'pbkdf2',
+        'requests',
+        'pyasn1',
+        'pyasn1-modules',
+        'qrcode',
+        'SocksiPy-branch',
+        'tlslite'
+    ],
     package_dir={
         'electrum_myr': 'lib',
         'electrum_myr_gui': 'gui',
@@ -83,16 +99,15 @@ setup(
         'electrum_myr.paymentrequest',
         'electrum_myr.paymentrequest_pb2',
         'electrum_myr.plugins',
+        'electrum_myr.qrscanner',
         'electrum_myr.scrypt',
         'electrum_myr.simple_config',
-        'electrum_myr.socks',
         'electrum_myr.synchronizer',
         'electrum_myr.transaction',
         'electrum_myr.util',
         'electrum_myr.verifier',
         'electrum_myr.version',
         'electrum_myr.wallet',
-        'electrum_myr.wallet_bitkey',
         'electrum_myr.x509',
         'electrum_myr_gui.gtk',
         'electrum_myr_gui.qt.__init__',

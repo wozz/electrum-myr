@@ -38,9 +38,11 @@ except ImportError:
 
 ################################## transactions
 
-MIN_RELAY_TX_FEE = 100000
+DUST_THRESHOLD = 0
 DUST_SOFT_LIMIT = 100000
-
+MIN_RELAY_TX_FEE = 100000
+RECOMMENDED_FEE = 100000
+COINBASE_MATURITY = 100
 
 # AES encryption
 EncodeAES = lambda secret, s: base64.b64encode(aes.encryptData(secret,s))
@@ -150,6 +152,8 @@ hash_decode = lambda x: x.decode('hex')[::-1]
 hmac_sha_512 = lambda x,y: hmac.new(x, y, hashlib.sha512).digest()
 
 def is_new_seed(x, prefix=version.SEED_BIP44):
+    import mnemonic
+    x = mnemonic.prepare_seed(x)
     s = hmac_sha_512("Seed version", x.encode('utf8')).encode('hex')
     return s.startswith(prefix)
 
@@ -411,7 +415,7 @@ from ecdsa.util import string_to_number, number_to_string
 def msg_magic(message):
     varint = var_int(len(message))
     encoded_varint = "".join([chr(int(varint[i:i+2], 16)) for i in xrange(0, len(varint), 2)])
-    return "\x18Myriadcoin Signed Message:\n" + encoded_varint + message
+    return "\x1bMyriadcoin Signed Message:\n" + encoded_varint + message
 
 
 def verify_message(address, signature, message):
